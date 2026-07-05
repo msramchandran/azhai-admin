@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { X } from 'lucide-react';
+import { X, ZoomIn, ZoomOut } from 'lucide-react';
 import api from '../services/api';
+import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 
 export default function DriverModal({ driver, onClose, onRefresh }) {
   if (!driver) return null;
@@ -8,6 +9,7 @@ export default function DriverModal({ driver, onClose, onRefresh }) {
   const [localStatus, setLocalStatus] = useState(driver.status || 'pending');
   const [localForceUpdate, setLocalForceUpdate] = useState(driver.forceUpdate || false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [zoomedImage, setZoomedImage] = useState(null);
 
   const handleApprove = async () => {
     setActionLoading(true);
@@ -130,7 +132,8 @@ export default function DriverModal({ driver, onClose, onRefresh }) {
               <img
                 src={driver.profileImage}
                 alt={driver.name}
-                className="w-32 h-32 rounded-lg object-cover border-2 border-gray-200"
+                className="w-32 h-32 rounded-lg object-cover border-2 border-gray-200 cursor-pointer hover:opacity-90 transition-opacity"
+                onClick={() => setZoomedImage(driver.profileImage)}
               />
               {driver.averageRating > 0 && (
                 <div className="mt-4 flex flex-col items-center">
@@ -251,37 +254,37 @@ export default function DriverModal({ driver, onClose, onRefresh }) {
                   {driver.dlFront && (
                     <div className="border rounded-lg p-2 bg-gray-50">
                       <p className="text-xs font-semibold text-gray-700 mb-1">Driving License (Front)</p>
-                      <img src={driver.dlFront} alt="DL Front" className="w-full h-40 object-contain rounded border" />
+                      <img src={driver.dlFront} alt="DL Front" className="w-full h-40 object-contain rounded border cursor-pointer hover:opacity-90 transition-opacity" onClick={() => setZoomedImage(driver.dlFront)} />
                     </div>
                   )}
                   {driver.dlBack && (
                     <div className="border rounded-lg p-2 bg-gray-50">
                       <p className="text-xs font-semibold text-gray-700 mb-1">Driving License (Back)</p>
-                      <img src={driver.dlBack} alt="DL Back" className="w-full h-40 object-contain rounded border" />
+                      <img src={driver.dlBack} alt="DL Back" className="w-full h-40 object-contain rounded border cursor-pointer hover:opacity-90 transition-opacity" onClick={() => setZoomedImage(driver.dlBack)} />
                     </div>
                   )}
                   {driver.rcFront && (
                     <div className="border rounded-lg p-2 bg-gray-50">
                       <p className="text-xs font-semibold text-gray-700 mb-1">RC Book (Front)</p>
-                      <img src={driver.rcFront} alt="RC Front" className="w-full h-40 object-contain rounded border" />
+                      <img src={driver.rcFront} alt="RC Front" className="w-full h-40 object-contain rounded border cursor-pointer hover:opacity-90 transition-opacity" onClick={() => setZoomedImage(driver.rcFront)} />
                     </div>
                   )}
                   {driver.rcBack && (
                     <div className="border rounded-lg p-2 bg-gray-50">
                       <p className="text-xs font-semibold text-gray-700 mb-1">RC Book (Back)</p>
-                      <img src={driver.rcBack} alt="RC Back" className="w-full h-40 object-contain rounded border" />
+                      <img src={driver.rcBack} alt="RC Back" className="w-full h-40 object-contain rounded border cursor-pointer hover:opacity-90 transition-opacity" onClick={() => setZoomedImage(driver.rcBack)} />
                     </div>
                   )}
                   {driver.idFront && (
                     <div className="border rounded-lg p-2 bg-gray-50">
                       <p className="text-xs font-semibold text-gray-700 mb-1">ID Card (Front)</p>
-                      <img src={driver.idFront} alt="ID Front" className="w-full h-40 object-contain rounded border" />
+                      <img src={driver.idFront} alt="ID Front" className="w-full h-40 object-contain rounded border cursor-pointer hover:opacity-90 transition-opacity" onClick={() => setZoomedImage(driver.idFront)} />
                     </div>
                   )}
                   {driver.idBack && (
                     <div className="border rounded-lg p-2 bg-gray-50">
                       <p className="text-xs font-semibold text-gray-700 mb-1">ID Card (Back)</p>
-                      <img src={driver.idBack} alt="ID Back" className="w-full h-40 object-contain rounded border" />
+                      <img src={driver.idBack} alt="ID Back" className="w-full h-40 object-contain rounded border cursor-pointer hover:opacity-90 transition-opacity" onClick={() => setZoomedImage(driver.idBack)} />
                     </div>
                   )}
                 </div>
@@ -376,6 +379,55 @@ export default function DriverModal({ driver, onClose, onRefresh }) {
           </div>
         </div>
       </div>
+
+      {/* Image Zoom Overlay */}
+      {zoomedImage && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-95 z-[60] flex items-center justify-center p-4"
+        >
+          <button 
+            className="absolute top-4 right-4 text-white p-2 hover:bg-white hover:bg-opacity-20 rounded-full transition-colors z-[70]"
+            onClick={(e) => { e.stopPropagation(); setZoomedImage(null); }}
+          >
+            <X size={32} />
+          </button>
+          
+          <div className="absolute top-4 left-4 text-white text-sm bg-black bg-opacity-50 px-3 py-1 rounded-full z-[70]">
+            Scroll to zoom, drag to move
+          </div>
+
+          <TransformWrapper
+            initialScale={1}
+            minScale={0.5}
+            maxScale={8}
+            centerOnInit={true}
+          >
+            {({ zoomIn, zoomOut, resetTransform }) => (
+              <>
+                <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4 z-[70] bg-black/50 p-2 rounded-full backdrop-blur-sm border border-white/20">
+                  <button onClick={() => zoomOut()} className="text-white hover:bg-white/20 rounded-full p-2 transition-colors">
+                    <ZoomOut size={24} />
+                  </button>
+                  <button onClick={() => resetTransform()} className="text-white hover:bg-white/20 rounded-full px-4 py-1.5 text-sm font-medium transition-colors">
+                    Reset
+                  </button>
+                  <button onClick={() => zoomIn()} className="text-white hover:bg-white/20 rounded-full p-2 transition-colors">
+                    <ZoomIn size={24} />
+                  </button>
+                </div>
+                <TransformComponent wrapperStyle={{ width: '100vw', height: '100vh' }}>
+                  <img 
+                    src={zoomedImage} 
+                    alt="Zoomed" 
+                    className="max-w-full max-h-screen object-contain select-none cursor-grab active:cursor-grabbing"
+                    draggable={false}
+                  />
+                </TransformComponent>
+              </>
+            )}
+          </TransformWrapper>
+        </div>
+      )}
     </div>
   );
 }
