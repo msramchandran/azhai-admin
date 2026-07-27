@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Eye, Check, X, Search, UploadCloud } from 'lucide-react';
+import { Eye, Check, X, Search, UploadCloud, Play, Trash2, Edit2, ToggleLeft, ToggleRight, PlusCircle } from 'lucide-react';
 import api from '../services/api';
 import DriverModal from '../components/DriverModal';
+
 
 const mockDrivers = [
   {
@@ -49,6 +50,15 @@ export default function DriverManagement() {
   const [versionName, setVersionName] = useState('');
   const [releases, setReleases] = useState([]);
   const [uploadLoading, setUploadLoading] = useState(false);
+
+  // 🎬 Tutorial Videos State
+  const [tutorialVideos, setTutorialVideos] = useState([]);
+  const [videoLoading, setVideoLoading] = useState(false);
+  const [showVideoForm, setShowVideoForm] = useState(false);
+  const [editingVideo, setEditingVideo] = useState(null);
+  const [videoForm, setVideoForm] = useState({ title: '', description: '', youtubeUrl: '', order: 0 });
+  const [videoSaving, setVideoSaving] = useState(false);
+
 
   const handleApkChange = (e) => {
     if (e.target.files && e.target.files[0]) {
@@ -125,12 +135,97 @@ export default function DriverManagement() {
   useEffect(() => {
     fetchDrivers();
     fetchReleases();
+    fetchTutorialVideos();
   }, []);
+
+  // 🎬 Tutorial Video Functions
+  const fetchTutorialVideos = async () => {
+    setVideoLoading(true);
+    try {
+      const response = await api.get('/api/admin/tutorial-videos');
+      setTutorialVideos(response.data);
+    } catch (error) {
+      console.error('Failed to fetch tutorial videos:', error);
+    } finally {
+      setVideoLoading(false);
+    }
+  };
+
+  const extractYoutubeId = (url) => {
+    if (!url) return null;
+    const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([a-zA-Z0-9_-]{11})/);
+    return match ? match[1] : null;
+  };
+
+  const handleVideoSave = async () => {
+    if (!videoForm.title.trim() || !videoForm.youtubeUrl.trim()) {
+      alert('Title and YouTube URL are required!');
+      return;
+    }
+    const videoId = extractYoutubeId(videoForm.youtubeUrl);
+    if (!videoId) {
+      alert('Invalid YouTube URL! Please enter a valid YouTube video link.');
+      return;
+    }
+    setVideoSaving(true);
+    try {
+      if (editingVideo) {
+        await api.put(`/api/admin/tutorial-videos/${editingVideo._id}`, videoForm);
+        alert('Video updated successfully! ✅');
+      } else {
+        await api.post('/api/admin/tutorial-videos', videoForm);
+        alert('Video added successfully! 🎬');
+      }
+      setShowVideoForm(false);
+      setEditingVideo(null);
+      setVideoForm({ title: '', description: '', youtubeUrl: '', order: 0 });
+      fetchTutorialVideos();
+    } catch (error) {
+      console.error('Failed to save video:', error);
+      alert('Failed to save video');
+    } finally {
+      setVideoSaving(false);
+    }
+  };
+
+  const handleVideoDelete = async (video) => {
+    if (!window.confirm(`Delete "${video.title}"? This cannot be undone.`)) return;
+    try {
+      await api.delete(`/api/admin/tutorial-videos/${video._id}`);
+      alert('Video deleted! 🗑️');
+      fetchTutorialVideos();
+    } catch (error) {
+      console.error('Failed to delete video:', error);
+      alert('Failed to delete video');
+    }
+  };
+
+  const handleVideoToggle = async (video) => {
+    try {
+      await api.put(`/api/admin/tutorial-videos/${video._id}/toggle`);
+      fetchTutorialVideos();
+    } catch (error) {
+      console.error('Failed to toggle video:', error);
+      alert('Failed to toggle video visibility');
+    }
+  };
+
+  const handleVideoEdit = (video) => {
+    setEditingVideo(video);
+    setVideoForm({
+      title: video.title,
+      description: video.description || '',
+      youtubeUrl: video.youtubeUrl,
+      order: video.order || 0,
+    });
+    setShowVideoForm(true);
+  };
 
   const handleViewDetails = (driver) => {
     setSelectedDriver(driver);
     setShowModal(true);
   };
+
 
   const handleApprove = async (driverId) => {
     try {
@@ -567,6 +662,199 @@ export default function DriverManagement() {
           onRefresh={fetchDrivers}
         />
       )}
+
+      {/* ============================================= */}
+      {/* 🎬 TUTORIAL VIDEOS MANAGEMENT SECTION        */}
+      {/* ============================================= */}
+      <div className="mt-10 bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-red-50 to-orange-50">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-red-100 rounded-lg">
+              <Play size={20} className="text-red-600 fill-red-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-900">Tutorial Videos Management</h3>
+              <p className="text-sm text-gray-500">App-ல் காட்டப்படும் YouTube tutorial videos இங்கே manage பண்ணலாம்</p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              setEditingVideo(null);
+              setVideoForm({ title: '', description: '', youtubeUrl: '', order: 0 });
+              setShowVideoForm(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-all text-sm shadow-sm active:scale-95"
+          >
+            <PlusCircle size={16} />
+            Add Video
+          </button>
+        </div>
+
+        {/* Add/Edit Form Panel */}
+        {showVideoForm && (
+          <div className="border-b border-gray-200 bg-red-50/40 px-6 py-5">
+            <h4 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
+              {editingVideo ? <Edit2 size={14} /> : <PlusCircle size={14} />}
+              {editingVideo ? 'Edit Video' : 'Add New Tutorial Video'}
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Video Title *</label>
+                <input
+                  type="text"
+                  placeholder="e.g. How to use Azhai App"
+                  value={videoForm.title}
+                  onChange={e => setVideoForm({ ...videoForm, title: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400 text-sm text-gray-900"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">YouTube URL *</label>
+                <input
+                  type="text"
+                  placeholder="https://youtu.be/xxxxx or https://youtube.com/watch?v=xxxxx"
+                  value={videoForm.youtubeUrl}
+                  onChange={e => setVideoForm({ ...videoForm, youtubeUrl: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400 text-sm text-gray-900 font-mono"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Description</label>
+                <input
+                  type="text"
+                  placeholder="Short description shown below the title"
+                  value={videoForm.description}
+                  onChange={e => setVideoForm({ ...videoForm, description: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400 text-sm text-gray-900"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Display Order (lower = first)</label>
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  value={videoForm.order}
+                  onChange={e => setVideoForm({ ...videoForm, order: parseInt(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400 text-sm text-gray-900"
+                />
+              </div>
+            </div>
+            {/* Thumbnail Preview */}
+            {extractYoutubeId(videoForm.youtubeUrl) && (
+              <div className="mt-3 flex items-center gap-3">
+                <img
+                  src={`https://img.youtube.com/vi/${extractYoutubeId(videoForm.youtubeUrl)}/mqdefault.jpg`}
+                  alt="Thumbnail Preview"
+                  className="w-32 h-20 object-cover rounded-lg border border-gray-200 shadow-sm"
+                />
+                <div>
+                  <p className="text-xs font-semibold text-green-700">✅ Valid YouTube URL</p>
+                  <p className="text-xs text-gray-500">Video ID: {extractYoutubeId(videoForm.youtubeUrl)}</p>
+                </div>
+              </div>
+            )}
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={handleVideoSave}
+                disabled={videoSaving}
+                className="px-5 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors text-sm disabled:opacity-50"
+              >
+                {videoSaving ? 'Saving...' : editingVideo ? '✅ Update Video' : '🎬 Add Video'}
+              </button>
+              <button
+                onClick={() => { setShowVideoForm(false); setEditingVideo(null); setVideoForm({ title: '', description: '', youtubeUrl: '', order: 0 }); }}
+                className="px-5 py-2 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition-colors text-sm"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Videos List */}
+        <div className="p-6">
+          {videoLoading ? (
+            <div className="flex items-center justify-center py-10">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mr-3"></div>
+              <span className="text-gray-500 text-sm">Loading videos...</span>
+            </div>
+          ) : tutorialVideos.length === 0 ? (
+            <div className="text-center py-10 text-gray-400">
+              <Play size={40} className="mx-auto mb-3 opacity-30" />
+              <p className="text-sm">No tutorial videos yet. Click "Add Video" to get started!</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {tutorialVideos.map((video) => {
+                const videoId = extractYoutubeId(video.youtubeUrl);
+                return (
+                  <div key={video._id} className={`border rounded-xl overflow-hidden bg-white shadow-sm transition-all hover:shadow-md ${!video.isActive ? 'opacity-50' : ''}`}>
+                    {/* Thumbnail */}
+                    <div className="relative">
+                      {videoId ? (
+                        <img
+                          src={`https://img.youtube.com/vi/${videoId}/mqdefault.jpg`}
+                          alt={video.title}
+                          className="w-full h-40 object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-40 bg-gray-200 flex items-center justify-center">
+                          <Play size={32} className="text-gray-400" />
+                        </div>
+                      )}
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="bg-black/50 rounded-full p-3">
+                          <Play size={20} className="text-white fill-white" />
+                        </div>
+                      </div>
+                      {/* Order Badge */}
+                      <span className="absolute top-2 left-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full font-bold">
+                        #{video.order}
+                      </span>
+                      {/* Status Badge */}
+                      <span className={`absolute top-2 right-2 text-xs px-2 py-0.5 rounded-full font-bold ${video.isActive ? 'bg-green-500 text-white' : 'bg-gray-500 text-white'}`}>
+                        {video.isActive ? '✅ Active' : '🚫 Hidden'}
+                      </span>
+                    </div>
+                    {/* Info */}
+                    <div className="p-3">
+                      <p className="font-bold text-gray-900 text-sm truncate">{video.title}</p>
+                      {video.description && (
+                        <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{video.description}</p>
+                      )}
+                      <p className="text-xs text-blue-500 mt-1 truncate font-mono">{video.youtubeUrl}</p>
+                    </div>
+                    {/* Actions */}
+                    <div className="px-3 pb-3 flex gap-2">
+                      <button
+                        onClick={() => handleVideoEdit(video)}
+                        className="flex-1 flex items-center justify-center gap-1 py-1.5 text-xs bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 font-semibold transition-all"
+                      >
+                        <Edit2 size={12} /> Edit
+                      </button>
+                      <button
+                        onClick={() => handleVideoToggle(video)}
+                        className={`flex-1 flex items-center justify-center gap-1 py-1.5 text-xs rounded-lg font-semibold transition-all ${video.isActive ? 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100' : 'bg-green-50 text-green-700 hover:bg-green-100'}`}
+                      >
+                        {video.isActive ? <><ToggleLeft size={12} /> Hide</> : <><ToggleRight size={12} /> Show</>}
+                      </button>
+                      <button
+                        onClick={() => handleVideoDelete(video)}
+                        className="flex-1 flex items-center justify-center gap-1 py-1.5 text-xs bg-red-50 text-red-600 rounded-lg hover:bg-red-100 font-semibold transition-all"
+                      >
+                        <Trash2 size={12} /> Delete
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
     </div>
   );
 }
