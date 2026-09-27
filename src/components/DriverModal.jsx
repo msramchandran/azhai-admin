@@ -26,6 +26,20 @@ export default function DriverModal({ driver, onClose, onRefresh }) {
     }
   };
 
+  const handleToggleClickerBlock = async () => {
+    setActionLoading(true);
+    try {
+      const res = await api.post(`/api/admin/clicker-users/${driver.id}/toggle-block`);
+      alert(`Auto Clicker is now ${res.data.isBlocked ? 'BLOCKED' : 'UNBLOCKED'}`);
+      if (onRefresh) onRefresh();
+    } catch (error) {
+      console.error('Failed to toggle clicker block:', error);
+      alert('Failed to toggle block status');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleReject = async () => {
     setActionLoading(true);
     try {
@@ -185,10 +199,23 @@ export default function DriverModal({ driver, onClose, onRefresh }) {
                       <p className="font-mono text-sm font-bold text-gray-900">{driver.clickerId}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-blue-600 uppercase font-semibold">Accepted Trips</p>
-                      <p className="font-mono text-sm font-bold text-gray-900">
+                      <p className="text-xs text-blue-600 uppercase font-semibold flex items-center justify-between">
+                        Accepted Trips
+                        <button
+                          onClick={handleToggleClickerBlock}
+                          disabled={actionLoading}
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            driver.isClickerBlocked 
+                              ? 'bg-green-100 text-green-700 hover:bg-green-200' 
+                              : 'bg-red-100 text-red-700 hover:bg-red-200'
+                          }`}
+                        >
+                          {driver.isClickerBlocked ? 'UNBLOCK' : 'BLOCK'}
+                        </button>
+                      </p>
+                      <p className="font-mono text-sm font-bold text-gray-900 mt-1">
                         {driver.clickerTrips} / 100 
-                        {driver.isClickerBlocked && <span className="ml-1 text-red-600 text-xs bg-red-100 px-1 rounded">BLOCKED</span>}
+                        {driver.isClickerBlocked && <span className="ml-2 text-red-600 text-xs bg-red-100 px-1 rounded border border-red-200">BLOCKED</span>}
                       </p>
                     </div>
                   </div>
