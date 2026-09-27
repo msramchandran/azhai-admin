@@ -172,6 +172,28 @@ export default function DriverModal({ driver, onClose, onRefresh }) {
                   </span>
                 )}
               </div>
+              
+              {/* Auto Clicker Details */}
+              {driver.clickerId && (
+                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm font-bold text-blue-900 mb-1 flex items-center gap-1">
+                    <span className="text-lg">⚡</span> Auto Clicker Stats
+                  </p>
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    <div>
+                      <p className="text-xs text-blue-600 uppercase font-semibold">Clicker ID</p>
+                      <p className="font-mono text-sm font-bold text-gray-900">{driver.clickerId}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-blue-600 uppercase font-semibold">Accepted Trips</p>
+                      <p className="font-mono text-sm font-bold text-gray-900">
+                        {driver.clickerTrips} / 100 
+                        {driver.isClickerBlocked && <span className="ml-1 text-red-600 text-xs bg-red-100 px-1 rounded">BLOCKED</span>}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Vehicle Info */}

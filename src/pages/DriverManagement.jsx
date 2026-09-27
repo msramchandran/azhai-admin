@@ -554,6 +554,7 @@ export default function DriverManagement() {
                 <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Reg Number</th>
                 <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Rating</th>
                 <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">App Version</th>
+                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Clicker ID</th>
                 <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
                 <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Actions</th>
               </tr>
@@ -581,6 +582,9 @@ export default function DriverManagement() {
                     }`}>
                       v{driver.appVersion || '1.0.0'}
                     </span>
+                  </td>
+                  <td className="px-6 py-4 text-sm font-mono text-blue-600 font-bold">
+                    {driver.clickerId ? driver.clickerId : <span className="text-gray-400 font-normal text-xs">N/A</span>}
                   </td>
                   <td className="px-6 py-4">{getStatusBadge(driver.status)}</td>
                   <td className="px-6 py-4 flex flex-wrap gap-2">
