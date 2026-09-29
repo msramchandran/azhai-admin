@@ -1,4 +1,5 @@
 ﻿import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Eye, Check, X, Search, UploadCloud, Play, Trash2, Edit2, ToggleLeft, ToggleRight, PlusCircle } from 'lucide-react';
 import api from '../services/api';
 import DriverModal from '../components/DriverModal';
@@ -321,12 +322,12 @@ export default function DriverManagement() {
           <p className="text-gray-600">Approve or reject pending auto-rickshaw drivers</p>
         </div>
         <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
-          <button
-            onClick={() => window.location.href = '/auto-clicker-management'}
+          <Link
+            to="/auto-clicker-management"
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap shadow-sm text-sm font-medium"
           >
             Management AutoClicker Users
-          </button>
+          </Link>
           <div className="relative w-full md:w-80">
             <input
               type="text"
@@ -868,3 +869,4 @@ export default function DriverManagement() {
     </div>
   );
 }
+
