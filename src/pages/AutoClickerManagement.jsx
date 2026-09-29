@@ -11,8 +11,6 @@ const AutoClickerManagement = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      // Use your backend base URL, assuming it's configured in axios or you can hardcode the dev URL if needed.
-      // Usually it's process.env.VITE_API_URL, we'll assume relative or http://43.205.135.3:3000
       const response = await axios.get('http://43.205.135.3:3000/api/admin/clicker-users');
       setUsers(response.data);
     } catch (error) {
@@ -29,7 +27,7 @@ const AutoClickerManagement = () => {
 
   const toggleBlock = async (driverId) => {
     try {
-      await axios.post(\http://43.205.135.3:3000/api/admin/clicker-users/\ + driverId + \/toggle-block\);
+      await axios.post(`http://43.205.135.3:3000/api/admin/clicker-users/${driverId}/toggle-block`);
       fetchUsers();
     } catch (error) {
       console.error('Error toggling block', error);
@@ -53,7 +51,7 @@ const AutoClickerManagement = () => {
           onClick={fetchUsers}
           className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
         >
-          <RefreshCw className={\w-4 h-4 \\} />
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           Refresh
         </button>
       </div>
@@ -88,8 +86,10 @@ const AutoClickerManagement = () => {
                     </td>
                     <td className="p-4 text-gray-600">{user.clickerId}</td>
                     <td className="p-4">
-                      <span className={\inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium \\}>
-                        <span className={\w-2 h-2 rounded-full \\}></span>
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium ${
+                        user.isOnline ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+                      }`}>
+                        <span className={`w-2 h-2 rounded-full ${user.isOnline ? 'bg-green-500' : 'bg-gray-400'}`}></span>
                         {user.isOnline ? 'Online' : 'Offline'}
                       </span>
                     </td>
@@ -101,7 +101,11 @@ const AutoClickerManagement = () => {
                     <td className="p-4 text-center">
                       <button
                         onClick={() => toggleBlock(user.id)}
-                        className={\inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors \\}
+                        className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                          user.isBlocked 
+                            ? 'bg-green-50 text-green-600 hover:bg-green-100' 
+                            : 'bg-red-50 text-red-600 hover:bg-red-100'
+                        }`}
                       >
                         {user.isBlocked ? (
                           <><CheckCircle className="w-4 h-4" /> Unblock</>
