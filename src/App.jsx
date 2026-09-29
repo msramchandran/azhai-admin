@@ -1,10 +1,11 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+﻿import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 import DriverManagement from './pages/DriverManagement';
 import LiveMap from './pages/LiveMap';
 import RideHistory from './pages/RideHistory';
 import CustomerManagement from './pages/CustomerManagement';
+import AutoClickerManagement from './pages/AutoClickerManagement';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
             <Route path="/map" element={<LiveMap />} />
             <Route path="/rides" element={<RideHistory />} />
             <Route path="/customers" element={<CustomerManagement />} />
+            <Route path="/auto-clicker-management" element={<AutoClickerManagement />} />
           </Routes>
         </div>
       </div>

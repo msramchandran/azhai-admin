@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Eye, Check, X, Search, UploadCloud, Play, Trash2, Edit2, ToggleLeft, ToggleRight, PlusCircle } from 'lucide-react';
 import api from '../services/api';
 import DriverModal from '../components/DriverModal';
@@ -51,7 +51,7 @@ export default function DriverManagement() {
   const [releases, setReleases] = useState([]);
   const [uploadLoading, setUploadLoading] = useState(false);
 
-  // 🎬 Tutorial Videos State
+  // ðŸŽ¬ Tutorial Videos State
   const [tutorialVideos, setTutorialVideos] = useState([]);
   const [videoLoading, setVideoLoading] = useState(false);
   const [showVideoForm, setShowVideoForm] = useState(false);
@@ -82,7 +82,7 @@ export default function DriverManagement() {
           'Content-Type': 'multipart/form-data'
         }
       });
-      alert('APK uploaded and published successfully! 🚀');
+      alert('APK uploaded and published successfully! ðŸš€');
       setApkFile(null);
       setVersionName('');
       document.getElementById('apk-file-input').value = '';
@@ -102,7 +102,7 @@ export default function DriverManagement() {
     setUploadLoading(true);
     try {
       await api.post('/api/admin/drivers/force-update-all');
-      alert('Force app update triggered for all outdated drivers! 🚀');
+      alert('Force app update triggered for all outdated drivers! ðŸš€');
       fetchDrivers();
     } catch (error) {
       console.error('Failed to trigger bulk force update:', error);
@@ -138,7 +138,7 @@ export default function DriverManagement() {
     fetchTutorialVideos();
   }, []);
 
-  // 🎬 Tutorial Video Functions
+  // ðŸŽ¬ Tutorial Video Functions
   const fetchTutorialVideos = async () => {
     setVideoLoading(true);
     try {
@@ -171,10 +171,10 @@ export default function DriverManagement() {
     try {
       if (editingVideo) {
         await api.put(`/api/admin/tutorial-videos/${editingVideo._id}`, videoForm);
-        alert('Video updated successfully! ✅');
+        alert('Video updated successfully! âœ…');
       } else {
         await api.post('/api/admin/tutorial-videos', videoForm);
-        alert('Video added successfully! 🎬');
+        alert('Video added successfully! ðŸŽ¬');
       }
       setShowVideoForm(false);
       setEditingVideo(null);
@@ -192,7 +192,7 @@ export default function DriverManagement() {
     if (!window.confirm(`Delete "${video.title}"? This cannot be undone.`)) return;
     try {
       await api.delete(`/api/admin/tutorial-videos/${video._id}`);
-      alert('Video deleted! 🗑️');
+      alert('Video deleted! ðŸ—‘ï¸');
       fetchTutorialVideos();
     } catch (error) {
       console.error('Failed to delete video:', error);
@@ -320,8 +320,14 @@ export default function DriverManagement() {
           <h1 className="text-3xl font-bold text-gray-900">Driver Management</h1>
           <p className="text-gray-600">Approve or reject pending auto-rickshaw drivers</p>
         </div>
-        <div className="w-full md:w-80">
-          <div className="relative">
+        <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
+          <button
+            onClick={() => window.location.href = '/auto-clicker-management'}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap shadow-sm text-sm font-medium"
+          >
+            Management AutoClicker Users
+          </button>
+          <div className="relative w-full md:w-80">
             <input
               type="text"
               placeholder="Search by phone, vehicle no..."
@@ -371,7 +377,7 @@ export default function DriverManagement() {
             disabled={!apkFile || !versionName.trim() || uploadLoading}
             className="px-6 py-2.5 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 text-sm shadow-sm md:self-end"
           >
-            {uploadLoading ? "Uploading..." : "Upload & Publish 📤"}
+            {uploadLoading ? "Uploading..." : "Upload & Publish ðŸ“¤"}
           </button>
         </div>
 
@@ -408,14 +414,14 @@ export default function DriverManagement() {
         {outdatedCount > 0 && (
           <div className="mt-4 pt-4 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-red-50/30 p-3 rounded-lg border border-red-100">
             <span className="text-sm font-semibold text-red-700 flex items-center gap-1.5">
-              ⚠️ {outdatedCount} drivers are running an outdated version of the app.
+              âš ï¸ {outdatedCount} drivers are running an outdated version of the app.
             </span>
             <button
               onClick={handleForceUpdateAllOutdated}
               disabled={uploadLoading}
               className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold transition-all text-xs shadow-sm flex items-center gap-1 active:scale-95 disabled:opacity-50"
             >
-              Force Update All Outdated Drivers 📲
+              Force Update All Outdated Drivers ðŸ“²
             </button>
           </div>
         )}
@@ -568,7 +574,7 @@ export default function DriverManagement() {
                   <td className="px-6 py-4 text-sm text-gray-600">
                     {driver.averageRating ? (
                       <div className="flex items-center gap-1 font-bold text-gray-700">
-                        <span className="text-amber-500">⭐</span> {driver.averageRating} <span className="text-xs text-gray-400 font-normal">({driver.totalRatings})</span>
+                        <span className="text-amber-500">â­</span> {driver.averageRating} <span className="text-xs text-gray-400 font-normal">({driver.totalRatings})</span>
                       </div>
                     ) : (
                       <span className="text-gray-400 text-xs">No Ratings</span>
@@ -618,7 +624,7 @@ export default function DriverManagement() {
                               if (window.confirm(`Cancel force update for ${driver.name}?`)) {
                                 try {
                                   await api.post(`/api/admin/drivers/${driver.id}/remove-force-update`);
-                                  alert('Force update cancelled successfully! 👍');
+                                  alert('Force update cancelled successfully! ðŸ‘');
                                   fetchDrivers();
                                 } catch (e) {
                                   alert('Failed to cancel force update');
@@ -627,7 +633,7 @@ export default function DriverManagement() {
                             }}
                             className="flex items-center gap-1 px-3 py-2 text-xs bg-orange-50 text-orange-600 rounded hover:bg-orange-100 transition-colors font-semibold"
                           >
-                            Cancel Update 🔄
+                            Cancel Update ðŸ”„
                           </button>
                         ) : (
                           (driver.appVersion || '1.0.0') !== '1.0.1' && (
@@ -636,7 +642,7 @@ export default function DriverManagement() {
                                 if (window.confirm(`Force app update for ${driver.name}?`)) {
                                   try {
                                     await api.post(`/api/admin/drivers/${driver.id}/force-update`);
-                                    alert('Force update triggered successfully! 📲');
+                                    alert('Force update triggered successfully! ðŸ“²');
                                     fetchDrivers();
                                   } catch (e) {
                                     alert('Failed to force update');
@@ -645,7 +651,7 @@ export default function DriverManagement() {
                               }}
                               className="flex items-center gap-1 px-3 py-2 text-xs bg-amber-50 text-amber-700 rounded hover:bg-amber-100 transition-colors font-semibold"
                             >
-                              Force Update 📲
+                              Force Update ðŸ“²
                             </button>
                           )
                         )}
@@ -668,7 +674,7 @@ export default function DriverManagement() {
       )}
 
       {/* ============================================= */}
-      {/* 🎬 TUTORIAL VIDEOS MANAGEMENT SECTION        */}
+      {/* ðŸŽ¬ TUTORIAL VIDEOS MANAGEMENT SECTION        */}
       {/* ============================================= */}
       <div className="mt-10 bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
         {/* Header */}
@@ -679,7 +685,7 @@ export default function DriverManagement() {
             </div>
             <div>
               <h3 className="text-lg font-bold text-gray-900">Tutorial Videos Management</h3>
-              <p className="text-sm text-gray-500">App-ல் காட்டப்படும் YouTube tutorial videos இங்கே manage பண்ணலாம்</p>
+              <p className="text-sm text-gray-500">App-à®²à¯ à®•à®¾à®Ÿà¯à®Ÿà®ªà¯à®ªà®Ÿà¯à®®à¯ YouTube tutorial videos à®‡à®™à¯à®•à¯‡ manage à®ªà®£à¯à®£à®²à®¾à®®à¯</p>
             </div>
           </div>
           <button
@@ -754,7 +760,7 @@ export default function DriverManagement() {
                   className="w-32 h-20 object-cover rounded-lg border border-gray-200 shadow-sm"
                 />
                 <div>
-                  <p className="text-xs font-semibold text-green-700">✅ Valid YouTube URL</p>
+                  <p className="text-xs font-semibold text-green-700">âœ… Valid YouTube URL</p>
                   <p className="text-xs text-gray-500">Video ID: {extractYoutubeId(videoForm.youtubeUrl)}</p>
                 </div>
               </div>
@@ -765,7 +771,7 @@ export default function DriverManagement() {
                 disabled={videoSaving}
                 className="px-5 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors text-sm disabled:opacity-50"
               >
-                {videoSaving ? 'Saving...' : editingVideo ? '✅ Update Video' : '🎬 Add Video'}
+                {videoSaving ? 'Saving...' : editingVideo ? 'âœ… Update Video' : 'ðŸŽ¬ Add Video'}
               </button>
               <button
                 onClick={() => { setShowVideoForm(false); setEditingVideo(null); setVideoForm({ title: '', description: '', youtubeUrl: '', order: 0 }); }}
@@ -819,7 +825,7 @@ export default function DriverManagement() {
                       </span>
                       {/* Status Badge */}
                       <span className={`absolute top-2 right-2 text-xs px-2 py-0.5 rounded-full font-bold ${video.isActive ? 'bg-green-500 text-white' : 'bg-gray-500 text-white'}`}>
-                        {video.isActive ? '✅ Active' : '🚫 Hidden'}
+                        {video.isActive ? 'âœ… Active' : 'ðŸš« Hidden'}
                       </span>
                     </div>
                     {/* Info */}
