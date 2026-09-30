@@ -8,6 +8,7 @@ const AutoClickerManagement = () => {
   const [loading, setLoading] = useState(true);
   const [editingTrips, setEditingTrips] = useState(null);
   const [tripValue, setTripValue] = useState(0);
+  const [filter, setFilter] = useState('ALL');
   const navigate = useNavigate();
 
   const fetchUsers = async () => {
@@ -59,6 +60,14 @@ const AutoClickerManagement = () => {
     }
   };
 
+  const filteredUsers = users.filter(user => {
+    if (filter === 'ONLINE') return user.isOnline;
+    if (filter === 'OFFLINE') return !user.isOnline;
+    if (filter === 'PAID') return user.hasPaidForClicker;
+    if (filter === 'BLOCKED') return user.isBlocked;
+    return true; // 'ALL'
+  });
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-6">
@@ -98,12 +107,12 @@ const AutoClickerManagement = () => {
                 <tr>
                   <td colSpan="5" className="p-8 text-center text-gray-500">Loading...</td>
                 </tr>
-              ) : users.length === 0 ? (
+              ) : filteredUsers.length === 0 ? (
                 <tr>
                   <td colSpan="5" className="p-8 text-center text-gray-500">No AutoClicker users found</td>
                 </tr>
               ) : (
-                users.map((user) => (
+                filteredUsers.map((user) => (
                   <tr key={user.id} className="border-b hover:bg-gray-50 transition-colors">
                     <td className="p-4">
                       <div className="font-medium text-gray-800">{user.name}</div>
