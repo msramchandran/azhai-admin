@@ -14,7 +14,7 @@ const AutoClickerManagement = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('http://43.205.135.3:3000/api/admin/clicker-users');
+      const response = await axios.get('/api/admin/clicker-users');
       setUsers(response.data);
     } catch (error) {
       console.error('Error fetching clicker users', error);
@@ -31,7 +31,7 @@ const AutoClickerManagement = () => {
 
   const togglePayment = async (driverId) => {
     try {
-      await axios.post(`http://43.205.135.3:3000/api/admin/clicker-users/${driverId}/toggle-payment`);
+      await axios.post(`/api/admin/clicker-users/${driverId}/toggle-payment`);
       fetchUsers();
     } catch (error) {
       console.error('Error toggling payment', error);
@@ -41,7 +41,7 @@ const AutoClickerManagement = () => {
 
   const updateTrips = async (driverId) => {
     try {
-      await axios.post(`http://43.205.135.3:3000/api/admin/clicker-users/${driverId}/update-trips`, { trips: tripValue });
+      await axios.post(`/api/admin/clicker-users/${driverId}/update-trips`, { trips: tripValue });
       setEditingTrips(null);
       fetchUsers();
     } catch (error) {
@@ -52,7 +52,7 @@ const AutoClickerManagement = () => {
 
   const toggleBlock = async (driverId) => {
     try {
-      await axios.post(`http://43.205.135.3:3000/api/admin/clicker-users/${driverId}/toggle-block`);
+      await axios.post(`/api/admin/clicker-users/${driverId}/toggle-block`);
       fetchUsers();
     } catch (error) {
       console.error('Error toggling block', error);
@@ -80,16 +80,28 @@ const AutoClickerManagement = () => {
           </button>
           <h1 className="text-2xl font-bold text-gray-800">AutoClicker Users Management</h1>
         </div>
-        <button 
-          onClick={fetchUsers}
+          <div className="flex items-center gap-4">
+            <select
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors cursor-pointer"
+            >
+              <option value="ALL">All Drivers</option>
+              <option value="ONLINE">Online Drivers</option>
+              <option value="OFFLINE">Offline Drivers</option>
+              <option value="PAID">Paid Drivers</option>
+              <option value="BLOCKED">Blocked Drivers</option>
+            </select>
+            <button 
+              onClick={fetchUsers}
           className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
         >
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           Refresh
         </button>
-      </div>
-
-      <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+          </div>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
