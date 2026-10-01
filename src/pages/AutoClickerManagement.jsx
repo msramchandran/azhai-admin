@@ -168,7 +168,7 @@ const AutoClickerManagement = () => {
                           {user.hasPaidForClicker ? 'Paid' : 'Unpaid'}
                         </button>
                         {user.clickerPaymentScreenshot && (
-                          <a href={`${import.meta.env.VITE_API_BASE_URL || 'http://43.205.135.3:3000'}/${user.clickerPaymentScreenshot.replace(/\\/g, '/')}`} target="_blank" rel="noreferrer" className="text-xs text-blue-600 underline">View Receipt</a>
+                          <a href={`/${user.clickerPaymentScreenshot.replace(/\\/g, '/')}`} target="_blank" rel="noreferrer" className="text-xs text-blue-600 underline">View Receipt</a>
                         )}
                       </div>
                     </td>
