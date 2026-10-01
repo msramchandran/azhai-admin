@@ -3,7 +3,7 @@ import { X, ZoomIn, ZoomOut } from 'lucide-react';
 import api from '../services/api';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 
-export default function DriverModal({ driver, onClose, onRefresh }) {
+export default function DriverModal({ driver, onClose, onRefresh }) { ''
   if (!driver) return null;
 
   const [localStatus, setLocalStatus] = useState(driver.status || 'pending');
