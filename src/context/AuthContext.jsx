@@ -5,7 +5,7 @@ const AuthContext = createContext(null);
 // SHA-256 hash of the password — plain text password is NOT stored here
 const CORRECT_USERNAME = 'msramachandran';
 const CORRECT_PASSWORD_HASH = 'a11884f9ff34291a4fdf2e053f680f300ea47a51a0fe77cf1449457d28de2dd0';
-const SESSION_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
+const SESSION_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes — fixed countdown from login
 const SESSION_KEY = 'admin_session';
 const SESSION_TIME_KEY = 'admin_session_time';
 
@@ -33,7 +33,7 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  // Check if session is still valid (within 10 min)
+  // Check if session is still valid (within 10 min from LOGIN time — never resets)
   const isSessionValid = useCallback(() => {
     const sessionFlag = sessionStorage.getItem(SESSION_KEY);
     const sessionTime = sessionStorage.getItem(SESSION_TIME_KEY);
@@ -52,7 +52,7 @@ export function AuthProvider({ children }) {
     setLoading(false);
   }, [isSessionValid, logout]);
 
-  // Auto-logout timer — checks every 30 seconds
+  // Auto-logout timer — checks every 10 seconds for accuracy
   useEffect(() => {
     if (!isAuthenticated) return;
 
@@ -60,7 +60,7 @@ export function AuthProvider({ children }) {
       if (!isSessionValid()) {
         logout('timeout');
       }
-    }, 30 * 1000); // check every 30 seconds
+    }, 10 * 1000); // check every 10 seconds
 
     return () => clearInterval(interval);
   }, [isAuthenticated, isSessionValid, logout]);
@@ -75,7 +75,7 @@ export function AuthProvider({ children }) {
         hashedInput === CORRECT_PASSWORD_HASH
       ) {
         sessionStorage.setItem(SESSION_KEY, 'true');
-        sessionStorage.setItem(SESSION_TIME_KEY, Date.now().toString());
+        sessionStorage.setItem(SESSION_TIME_KEY, Date.now().toString()); // login time — never changes
         sessionStorage.removeItem('logout_reason');
         setIsAuthenticated(true);
         return true;
@@ -89,15 +89,8 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Refresh session timer on user activity
-  const refreshSession = useCallback(() => {
-    if (isAuthenticated) {
-      sessionStorage.setItem(SESSION_TIME_KEY, Date.now().toString());
-    }
-  }, [isAuthenticated]);
-
   return (
-    <AuthContext.Provider value={{ isAuthenticated, loading, login, logout, loginError, refreshSession }}>
+    <AuthContext.Provider value={{ isAuthenticated, loading, login, logout, loginError }}>
       {children}
     </AuthContext.Provider>
   );

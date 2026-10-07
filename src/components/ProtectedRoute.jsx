@@ -1,20 +1,8 @@
-import { useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function ProtectedRoute({ children }) {
-  const { isAuthenticated, loading, refreshSession } = useAuth();
-
-  // Refresh session timer on any user click/keypress (activity detection)
-  useEffect(() => {
-    if (!isAuthenticated) return;
-
-    const events = ['click', 'keydown', 'mousemove', 'scroll', 'touchstart'];
-    const handleActivity = () => refreshSession();
-
-    events.forEach(event => window.addEventListener(event, handleActivity, { passive: true }));
-    return () => events.forEach(event => window.removeEventListener(event, handleActivity));
-  }, [isAuthenticated, refreshSession]);
+  const { isAuthenticated, loading } = useAuth();
 
   // Show nothing while checking session on load
   if (loading) {
