@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Eye, Check, X, Search, UploadCloud, Play, Trash2, Edit2, ToggleLeft, ToggleRight, PlusCircle } from 'lucide-react';
 import api from '../services/api';
@@ -300,7 +300,8 @@ export default function DriverManagement() {
     const phone = (driver.phone || '').toLowerCase();
     const regNumber = (driver.regNumber || '').toLowerCase();
     const name = (driver.name || '').toLowerCase();
-    return phone.includes(query) || regNumber.includes(query) || name.includes(query);
+    const email = (driver.email || '').toLowerCase();
+    return phone.includes(query) || regNumber.includes(query) || name.includes(query) || email.includes(query);
   });
 
   if (loading) {

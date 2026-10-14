@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, ZoomIn, ZoomOut } from 'lucide-react';
+import { X, ZoomIn, ZoomOut, Mail } from 'lucide-react';
 import api from '../services/api';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 
@@ -169,6 +169,22 @@ export default function DriverModal({ driver, onClose, onRefresh }) { ''
               <div>
                 <p className="text-sm text-gray-600">Phone Number</p>
                 <p className="text-lg font-semibold text-gray-900">{driver.phone}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 flex items-center gap-1.5">
+                  <Mail size={15} className="text-gray-500" />
+                  Google Email / Account
+                </p>
+                {driver.email ? (
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    <p className="text-base font-semibold text-blue-700 select-all">{driver.email}</p>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-200">
+                      🔵 Google Sign-In
+                    </span>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-400 italic mt-1">Not linked (Phone Login)</p>
+                )}
               </div>
               <div>
                 <p className="text-sm text-gray-600">Status</p>
