@@ -458,7 +458,8 @@ export default function CustomerManagement() {
     const phone = (customer.phone || '').toLowerCase();
     const name = (customer.name || '').toLowerCase();
     const referral = (customer.referralCode || '').toLowerCase();
-    return phone.includes(query) || name.includes(query) || referral.includes(query);
+    const email = (customer.email || '').toLowerCase();
+    return phone.includes(query) || name.includes(query) || referral.includes(query) || email.includes(query);
   });
 
   return (
@@ -549,7 +550,7 @@ export default function CustomerManagement() {
                   <thead>
                     <tr className="bg-gray-50 border-b border-gray-200 text-sm text-gray-600 uppercase tracking-wider">
                       <th className="p-4 font-medium">Customer</th>
-                      <th className="p-4 font-medium">Phone</th>
+                      <th className="p-4 font-medium">Email / Phone</th>
                       <th className="p-4 font-medium">Referral Code</th>
                       <th className="p-4 font-medium text-center">Trips</th>
                       <th className="p-4 font-medium text-center">Status</th>
@@ -579,7 +580,23 @@ export default function CustomerManagement() {
                               </div>
                             </div>
                           </td>
-                          <td className="p-4 text-gray-600">{customer.phone}</td>
+                          <td className="p-4 text-gray-600">
+                            {customer.email ? (
+                              <div className="flex flex-col gap-0.5">
+                                <span className="font-semibold text-gray-900 text-sm flex items-center gap-1.5 select-all">
+                                  <span className="inline-block w-2 h-2 rounded-full bg-blue-500"></span>
+                                  {customer.email}
+                                </span>
+                                {customer.phone && customer.phone !== 'N/A' && customer.phone !== '' ? (
+                                  <span className="text-xs text-gray-500">{customer.phone}</span>
+                                ) : (
+                                  <span className="text-[11px] text-blue-600 font-medium">🔵 Google Sign-In</span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-sm text-gray-700">{customer.phone || 'N/A'}</span>
+                            )}
+                          </td>
                           <td className="p-4">
                             <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs font-semibold rounded-md border border-blue-100">
                               {customer.referralCode}
