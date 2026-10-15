@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { ArrowLeft, RefreshCw, Ban, CheckCircle } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Ban, CheckCircle, Clock, Smartphone, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const AutoClickerManagement = () => {
@@ -28,7 +28,6 @@ const AutoClickerManagement = () => {
     fetchUsers();
   }, []);
 
-
   const togglePayment = async (driverId) => {
     try {
       await axios.post(`/api/admin/clicker-users/${driverId}/toggle-payment`);
@@ -36,6 +35,29 @@ const AutoClickerManagement = () => {
     } catch (error) {
       console.error('Error toggling payment', error);
       alert('Failed to update payment status');
+    }
+  };
+
+  const triggerFreeTrialEnd = async (driverId) => {
+    if (!window.confirm('இந்த user-க்கு Free Trial End dialog trigger பண்ணவா? Payment QR dialog தோன்றும்.')) return;
+    try {
+      await axios.post(`/api/admin/clicker-users/${driverId}/trigger-free-trial-end`);
+      alert('✅ Free Trial End triggered! User-க்கு payment dialog show ஆகும்.');
+      fetchUsers();
+    } catch (error) {
+      console.error('Error triggering free trial end', error);
+      alert('Failed to trigger free trial end');
+    }
+  };
+
+  const forceUpdateAll = async () => {
+    if (!window.confirm('எல்லா AutoClicker users-க்கும் Force App Update dialog அனுப்பவா?')) return;
+    try {
+      await axios.post('/api/admin/force-update-all-clickers');
+      alert('✅ Force Update broadcasted to all connected AutoClicker users!');
+    } catch (error) {
+      console.error('Error broadcasting force update', error);
+      alert('Failed to broadcast force update');
     }
   };
 
@@ -78,38 +100,51 @@ const AutoClickerManagement = () => {
           >
             <ArrowLeft className="w-6 h-6 text-gray-600" />
           </button>
-          <h1 className="text-2xl font-bold text-gray-800">AutoClicker Users Management</h1>
-        </div>
-          <div className="flex items-center gap-4">
-            <select
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors cursor-pointer"
-            >
-              <option value="ALL">All Drivers</option>
-              <option value="ONLINE">Online Drivers</option>
-              <option value="OFFLINE">Offline Drivers</option>
-              <option value="PAID">Paid Drivers</option>
-              <option value="BLOCKED">Blocked Drivers</option>
-            </select>
-            <button 
-              onClick={fetchUsers}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800">AutoClicker Users Management</h1>
+            <p className="text-xs text-gray-500">Manage free trial, app versions, daily limits & block status</p>
           </div>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+        <div className="flex items-center gap-3">
+          <select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors cursor-pointer text-sm"
+          >
+            <option value="ALL">All Drivers</option>
+            <option value="ONLINE">Online Drivers</option>
+            <option value="OFFLINE">Offline Drivers</option>
+            <option value="PAID">Paid Drivers</option>
+            <option value="BLOCKED">Blocked Drivers</option>
+          </select>
+          <button
+            onClick={forceUpdateAll}
+            className="flex items-center gap-1.5 px-3 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium"
+            title="Broadcast force update to all clicker users"
+          >
+            <AlertTriangle className="w-4 h-4 text-red-600" />
+            Force Update All
+          </button>
+          <button 
+            onClick={fetchUsers}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
+      </div>
+      <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50 border-b">
                 <th className="p-4 font-semibold text-gray-600">Driver Name</th>
                 <th className="p-4 font-semibold text-gray-600">Clicker ID</th>
-                <th className="p-4 font-semibold text-gray-600">Status</th>
+                <th className="p-4 font-semibold text-gray-600 text-center">App Version</th>
+                <th className="p-4 font-semibold text-gray-600">Online Status</th>
                 <th className="p-4 font-semibold text-gray-600 text-center">Accepted Trips</th>
+                <th className="p-4 font-semibold text-gray-600 text-center">Today's Limit</th>
                 <th className="p-4 font-semibold text-gray-600 text-center">Payment Status</th>
                 <th className="p-4 font-semibold text-gray-600 text-center">Action</th>
               </tr>
@@ -117,11 +152,11 @@ const AutoClickerManagement = () => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="5" className="p-8 text-center text-gray-500">Loading...</td>
+                  <td colSpan="8" className="p-8 text-center text-gray-500">Loading...</td>
                 </tr>
               ) : filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="p-8 text-center text-gray-500">No AutoClicker users found</td>
+                  <td colSpan="8" className="p-8 text-center text-gray-500">No AutoClicker users found</td>
                 </tr>
               ) : (
                 filteredUsers.map((user) => (
@@ -130,7 +165,17 @@ const AutoClickerManagement = () => {
                       <div className="font-medium text-gray-800">{user.name}</div>
                       <div className="text-sm text-gray-500">{user.phone}</div>
                     </td>
-                    <td className="p-4 text-gray-600">{user.clickerId}</td>
+                    <td className="p-4 text-gray-600 font-mono text-sm">{user.clickerId}</td>
+                    <td className="p-4 text-center">
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
+                        user.appVersion && user.appVersion !== '1.0.0' 
+                          ? 'bg-blue-100 text-blue-700' 
+                          : 'bg-gray-100 text-gray-600'
+                      }`}>
+                        <Smartphone className="w-3 h-3 mr-1" />
+                        v{user.appVersion || '1.0.0'}
+                      </span>
+                    </td>
                     <td className="p-4">
                       <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium ${
                         user.isOnline ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
@@ -142,24 +187,36 @@ const AutoClickerManagement = () => {
                     <td className="p-4 text-center">
                       {editingTrips === user.id ? (
                         <div className="flex items-center gap-2 justify-center">
-                          <input type="number" value={tripValue} onChange={(e) => setTripValue(Number(e.target.value))} className="w-16 p-1 border rounded" />
-                          <button onClick={() => updateTrips(user.id)} className="px-2 py-1 bg-green-500 text-white rounded text-xs">Save</button>
+                          <input type="number" value={tripValue} onChange={(e) => setTripValue(Number(e.target.value))} className="w-16 p-1 border rounded text-center" />
+                          <button onClick={() => updateTrips(user.id)} className="px-2 py-1 bg-green-500 text-white rounded text-xs font-medium">Save</button>
                           <button onClick={() => setEditingTrips(null)} className="px-2 py-1 bg-gray-500 text-white rounded text-xs">X</button>
                         </div>
                       ) : (
                         <div className="flex items-center justify-center gap-2">
-                          <span className="inline-block px-3 py-1 bg-yellow-100 text-yellow-800 rounded-lg font-semibold">
+                          <span className="inline-block px-3 py-1 bg-yellow-100 text-yellow-800 rounded-lg font-semibold text-sm">
                             {user.acceptedTrips}
                           </span>
-                          <button onClick={() => { setEditingTrips(user.id); setTripValue(user.acceptedTrips); }} className="text-blue-500 text-xs">Edit</button>
+                          <button onClick={() => { setEditingTrips(user.id); setTripValue(user.acceptedTrips); }} className="text-blue-500 text-xs hover:underline">Edit</button>
                         </div>
                       )}
                     </td>
                     <td className="p-4 text-center">
-                      <div className="flex flex-col items-center gap-2">
+                      <div className="text-xs font-medium text-gray-800">{user.dailyTrips || 0} trips / ₹{user.dailyEarnings || 0}</div>
+                      {user.isDailyLimitActive ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] text-red-600 font-semibold bg-red-50 px-2 py-0.5 rounded-full mt-1">
+                          <Clock className="w-3 h-3" /> 12hr Block Active
+                        </span>
+                      ) : (
+                        <span className="inline-block text-[11px] text-green-700 bg-green-50 px-2 py-0.5 rounded-full mt-1">
+                          Available
+                        </span>
+                      )}
+                    </td>
+                    <td className="p-4 text-center">
+                      <div className="flex flex-col items-center gap-1.5">
                         <button
                           onClick={() => togglePayment(user.id)}
-                          className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg font-medium transition-colors ${
+                          className={`inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
                             user.hasPaidForClicker 
                               ? 'bg-green-100 text-green-700 hover:bg-green-200' 
                               : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
@@ -167,15 +224,22 @@ const AutoClickerManagement = () => {
                         >
                           {user.hasPaidForClicker ? 'Paid' : 'Unpaid'}
                         </button>
+                        <button
+                          onClick={() => triggerFreeTrialEnd(user.clickerId || user.id)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded text-[11px] font-medium transition-colors shadow-sm"
+                          title="Trigger Free Trial End Payment dialog to user"
+                        >
+                          End Trial
+                        </button>
                         {user.clickerPaymentScreenshot && (
-                          <a href={`/${user.clickerPaymentScreenshot.replace(/\\/g, '/')}`} target="_blank" rel="noreferrer" className="text-xs text-blue-600 underline">View Receipt</a>
+                          <a href={`/${user.clickerPaymentScreenshot.replace(/\\/g, '/')}`} target="_blank" rel="noreferrer" className="text-[11px] text-blue-600 underline">View Receipt</a>
                         )}
                       </div>
                     </td>
                     <td className="p-4 text-center">
                       <button
                         onClick={() => toggleBlock(user.id)}
-                        className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                           user.isBlocked 
                             ? 'bg-green-50 text-green-600 hover:bg-green-100' 
                             : 'bg-red-50 text-red-600 hover:bg-red-100'
