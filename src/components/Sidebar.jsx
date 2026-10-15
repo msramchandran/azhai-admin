@@ -1,14 +1,20 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, Map, History, LogOut, UserCircle, Shield } from 'lucide-react';
+import { LayoutDashboard, Users, Map, History, LogOut, UserCircle, Shield, Menu, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function Sidebar() {
   const location = useLocation();
   const { logout } = useAuth();
   const [timeLeft, setTimeLeft] = useState('');
+  const [isOpen, setIsOpen] = useState(false);
 
   const isActive = (path) => location.pathname === path;
+
+  // Close mobile drawer on route change
+  useEffect(() => {
+    setIsOpen(false);
+  }, [location.pathname]);
 
   // Show countdown timer (10 min session)
   useEffect(() => {
@@ -41,7 +47,31 @@ export default function Sidebar() {
   };
 
   return (
-    <div className="w-64 bg-gradient-to-b from-gray-900 to-gray-800 text-white h-screen fixed left-0 top-0 flex flex-col">
+    <>
+      {/* Mobile Hamburger Button */}
+      <div className="md:hidden fixed top-3 right-3 z-50">
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="p-2 bg-gray-900 text-white rounded-lg shadow-lg hover:bg-gray-800 transition-colors border border-gray-700 flex items-center gap-1.5 text-xs font-semibold"
+          aria-label="Toggle navigation menu"
+        >
+          {isOpen ? <X size={18} /> : <Menu size={18} />}
+          <span>{isOpen ? 'Close' : 'Menu'}</span>
+        </button>
+      </div>
+
+      {/* Backdrop overlay for mobile */}
+      {isOpen && (
+        <div
+          onClick={() => setIsOpen(false)}
+          className="fixed inset-0 bg-black/60 z-40 md:hidden backdrop-blur-sm transition-opacity"
+        />
+      )}
+
+      {/* Sidebar Container */}
+      <div className={`w-64 bg-gradient-to-b from-gray-900 to-gray-800 text-white h-screen fixed left-0 top-0 flex flex-col z-50 transition-transform duration-300 ease-in-out ${
+        isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+      }`}>
       <div className="p-6 border-b border-gray-700">
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">🚗</div>
@@ -83,5 +113,6 @@ export default function Sidebar() {
         </button>
       </div>
     </div>
-  );
+  </>
+);
 }

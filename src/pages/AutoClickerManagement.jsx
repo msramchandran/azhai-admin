@@ -118,7 +118,12 @@ const AutoClickerManagement = () => {
     }
   };
 
+  const updatedCount = users.filter(user => user.appVersion === targetVersion).length;
+  const outdatedCount = users.filter(user => user.appVersion !== targetVersion).length;
+
   const filteredUsers = users.filter(user => {
+    if (filter === 'UPDATED') return user.appVersion === targetVersion;
+    if (filter === 'OUTDATED') return user.appVersion !== targetVersion;
     if (filter === 'ONLINE') return user.isOnline;
     if (filter === 'OFFLINE') return !user.isOnline;
     if (filter === 'PAID') return user.hasPaidForClicker;
@@ -127,70 +132,74 @@ const AutoClickerManagement = () => {
   });
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
+    <div className="md:ml-64 p-3 sm:p-6 min-h-screen bg-gray-50">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
+        <div className="flex items-center gap-3">
           <button 
             onClick={() => navigate('/drivers')} 
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            className="p-2 hover:bg-gray-200 bg-white shadow-sm border rounded-full transition-colors shrink-0"
+            title="Back to Drivers"
           >
-            <ArrowLeft className="w-6 h-6 text-gray-600" />
+            <ArrowLeft className="w-5 h-5 text-gray-600" />
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">AutoClicker Users Management</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-800">AutoClicker Users Management</h1>
             <p className="text-xs text-gray-500">Manage free trial, app versions, daily limits & block status</p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <select
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors cursor-pointer text-sm"
+            className="px-3 sm:px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors cursor-pointer text-xs sm:text-sm font-medium"
           >
-            <option value="ALL">All Drivers</option>
+            <option value="ALL">All Drivers ({users.length})</option>
+            <option value="UPDATED">Updated Drivers ({updatedCount})</option>
+            <option value="OUTDATED">Outdated Drivers ({outdatedCount})</option>
             <option value="ONLINE">Online Drivers</option>
             <option value="OFFLINE">Offline Drivers</option>
             <option value="PAID">Paid Drivers</option>
             <option value="BLOCKED">Blocked Drivers</option>
           </select>
-          <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-lg text-xs">
-            <Smartphone className="w-4 h-4 text-blue-600" />
-            <span className="font-semibold text-blue-900">Live Version:</span>
+          <div className="flex items-center gap-1.5 sm:gap-2 bg-blue-50 border border-blue-200 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs">
+            <Smartphone className="w-4 h-4 text-blue-600 shrink-0" />
+            <span className="font-semibold text-blue-900 hidden sm:inline">Live Version:</span>
             <input
               type="text"
               value={targetVersion}
               onChange={(e) => setTargetVersion(e.target.value)}
               placeholder="1.0.0"
-              className="w-16 px-2 py-0.5 border border-blue-300 rounded text-center font-bold text-blue-900 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+              className="w-16 px-1.5 py-0.5 border border-blue-300 rounded text-center font-bold text-blue-900 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
             />
             <button
               onClick={handleSaveVersion}
               disabled={savingVersion}
-              className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded font-medium transition-colors"
+              className="px-2 sm:px-2.5 py-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded font-medium transition-colors text-[11px] sm:text-xs"
             >
-              {savingVersion ? 'Saving...' : 'Set & Broadcast'}
+              {savingVersion ? '...' : 'Set & Broadcast'}
             </button>
           </div>
           <button
             onClick={forceUpdateAll}
-            className="flex items-center gap-1.5 px-3 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium"
+            className="flex items-center gap-1 px-3 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 transition-colors text-xs sm:text-sm font-medium"
             title="Broadcast force update to all clicker users"
           >
-            <AlertTriangle className="w-4 h-4 text-red-600" />
-            Force Update All
+            <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
+            <span className="hidden sm:inline">Force Update All</span>
+            <span className="sm:hidden">Update All</span>
           </button>
           <button 
             onClick={fetchUsers}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium"
+            className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-xs sm:text-sm font-medium"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
+            <span>Refresh</span>
           </button>
         </div>
       </div>
       <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+        <div className="overflow-x-auto w-full">
+          <table className="min-w-[900px] w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50 border-b">
                 <th className="p-4 font-semibold text-gray-600">Driver Name</th>
