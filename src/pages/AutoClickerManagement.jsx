@@ -9,7 +9,20 @@ const AutoClickerManagement = () => {
   const [editingTrips, setEditingTrips] = useState(null);
   const [tripValue, setTripValue] = useState(0);
   const [filter, setFilter] = useState('ALL');
+  const [targetVersion, setTargetVersion] = useState('1.0.0');
+  const [savingVersion, setSavingVersion] = useState(false);
   const navigate = useNavigate();
+
+  const fetchVersion = async () => {
+    try {
+      const res = await axios.get('/api/clicker-version');
+      if (res.data && res.data.latestVersion) {
+        setTargetVersion(res.data.latestVersion);
+      }
+    } catch (err) {
+      console.error('Error fetching clicker version', err);
+    }
+  };
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -26,7 +39,30 @@ const AutoClickerManagement = () => {
 
   useEffect(() => {
     fetchUsers();
+    fetchVersion();
   }, []);
+
+  const handleSaveVersion = async () => {
+    if (!targetVersion.trim()) {
+      alert('Please enter a valid version (e.g. 1.0.1)');
+      return;
+    }
+    if (!window.confirm(`AutoClicker Target Version-ஐ v${targetVersion} என மாற்றவா? பழைய பதிப்பு வைத்திருக்கும் பயனர்களுக்கு Update Dialog தோன்றும்.`)) return;
+    setSavingVersion(true);
+    try {
+      await axios.post('/api/admin/clicker-version', {
+        versionName: targetVersion.trim(),
+        apkUrl: 'https://playstore-website-one.vercel.app/autoclicker.apk'
+      });
+      alert(`✅ Target Version v${targetVersion.trim()} என அமைக்கப்பட்டது! Vercel Download URL உடன் update broadcast செய்யப்பட்டுள்ளது.`);
+      fetchUsers();
+    } catch (err) {
+      console.error('Failed to set target version', err);
+      alert('Failed to update target version: ' + err.message);
+    } finally {
+      setSavingVersion(false);
+    }
+  };
 
   const togglePayment = async (driverId) => {
     try {
@@ -117,6 +153,24 @@ const AutoClickerManagement = () => {
             <option value="PAID">Paid Drivers</option>
             <option value="BLOCKED">Blocked Drivers</option>
           </select>
+          <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-lg text-xs">
+            <Smartphone className="w-4 h-4 text-blue-600" />
+            <span className="font-semibold text-blue-900">Live Version:</span>
+            <input
+              type="text"
+              value={targetVersion}
+              onChange={(e) => setTargetVersion(e.target.value)}
+              placeholder="1.0.0"
+              className="w-16 px-2 py-0.5 border border-blue-300 rounded text-center font-bold text-blue-900 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+            />
+            <button
+              onClick={handleSaveVersion}
+              disabled={savingVersion}
+              className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded font-medium transition-colors"
+            >
+              {savingVersion ? 'Saving...' : 'Set & Broadcast'}
+            </button>
+          </div>
           <button
             onClick={forceUpdateAll}
             className="flex items-center gap-1.5 px-3 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium"
@@ -168,12 +222,15 @@ const AutoClickerManagement = () => {
                     <td className="p-4 text-gray-600 font-mono text-sm">{user.clickerId}</td>
                     <td className="p-4 text-center">
                       <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
-                        user.appVersion && user.appVersion !== '1.0.0' 
-                          ? 'bg-blue-100 text-blue-700' 
-                          : 'bg-gray-100 text-gray-600'
+                        user.appVersion === targetVersion
+                          ? 'bg-green-100 text-green-700 border border-green-300' 
+                          : 'bg-red-50 text-red-600 border border-red-200'
                       }`}>
                         <Smartphone className="w-3 h-3 mr-1" />
                         v{user.appVersion || '1.0.0'}
+                        <span className="ml-1 text-[10px] font-normal">
+                          {user.appVersion === targetVersion ? '(Updated)' : '(Outdated)'}
+                        </span>
                       </span>
                     </td>
                     <td className="p-4">
