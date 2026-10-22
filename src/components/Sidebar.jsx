@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, Map, History, LogOut, UserCircle, Shield, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Users, Map, History, LogOut, UserCircle, Shield, Menu, X, Play, Smartphone } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function Sidebar() {
@@ -36,6 +36,8 @@ export default function Sidebar() {
     { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
     { path: '/drivers', icon: Users, label: 'Driver Management' },
     { path: '/customers', icon: UserCircle, label: 'Customer Management' },
+    { path: '/auto-clicker-management', icon: Smartphone, label: 'AutoClicker Users' },
+    { path: '/ad-watch-management', icon: Play, label: 'AD Watch Logs' },
     { path: '/map', icon: Map, label: 'Live Map' },
     { path: '/rides', icon: History, label: 'Ride History' },
   ];

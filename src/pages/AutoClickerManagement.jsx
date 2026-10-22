@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { ArrowLeft, RefreshCw, Ban, CheckCircle, Clock, Smartphone, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Ban, CheckCircle, Clock, Smartphone, AlertTriangle, Play } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const AutoClickerManagement = () => {
@@ -108,6 +108,18 @@ const AutoClickerManagement = () => {
     }
   };
 
+    const removeDailyLimit = async (userId, name) => {
+    if (!window.confirm(`${name || 'இந்த டிரைவர்'}-க்கு 12-hour block-ஐ நீக்கவா? ஆப் உடனடியாக அன்லாக் ஆகும்.`)) return;
+    try {
+      await axios.post(`/api/admin/clicker-users/${userId}/remove-daily-limit`);
+      alert('✅ 12-Hour Block வெற்றிகரமாக நீக்கப்பட்டது! பயனருக்கு ஆப் அன்லாக் செய்யப்பட்டு அறிவிப்பு அனுப்பப்பட்டுள்ளது.');
+      fetchUsers();
+    } catch (error) {
+      console.error('Error removing daily limit', error);
+      alert('12-hour block நீக்க முடியவில்லை: ' + (error.response?.data?.error || error.message));
+    }
+  };
+
   const toggleBlock = async (driverId) => {
     try {
       await axios.post(`/api/admin/clicker-users/${driverId}/toggle-block`);
@@ -179,6 +191,14 @@ const AutoClickerManagement = () => {
               {savingVersion ? '...' : 'Set & Broadcast'}
             </button>
           </div>
+          <button
+            onClick={() => navigate('/ad-watch-management')}
+            className="flex items-center gap-1.5 px-3 py-2 bg-green-50 text-green-700 border border-green-200 rounded-lg hover:bg-green-100 transition-colors text-xs sm:text-sm font-medium"
+            title="View AD Watch Logs"
+          >
+            <Play className="w-4 h-4 text-green-600 fill-green-600 shrink-0" />
+            <span>AD Watch Logs</span>
+          </button>
           <button
             onClick={forceUpdateAll}
             className="flex items-center gap-1 px-3 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 transition-colors text-xs sm:text-sm font-medium"
@@ -269,9 +289,18 @@ const AutoClickerManagement = () => {
                     <td className="p-4 text-center">
                       <div className="text-xs font-medium text-gray-800">{user.dailyTrips || 0} trips / ₹{user.dailyEarnings || 0}</div>
                       {user.isDailyLimitActive ? (
-                        <span className="inline-flex items-center gap-1 text-[11px] text-red-600 font-semibold bg-red-50 px-2 py-0.5 rounded-full mt-1">
-                          <Clock className="w-3 h-3" /> 12hr Block Active
-                        </span>
+                        <div className="flex flex-col items-center gap-1.5 mt-1">
+                          <span className="inline-flex items-center gap-1 text-[11px] text-red-600 font-semibold bg-red-50 px-2 py-0.5 rounded-full">
+                            <Clock className="w-3 h-3" /> 12hr Block Active
+                          </span>
+                          <button
+                            onClick={() => removeDailyLimit(user.id, user.name)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-[11px] font-semibold transition-colors shadow-sm cursor-pointer"
+                            title="Remove 12-Hour Block for this driver"
+                          >
+                            Remove 12hr Block
+                          </button>
+                        </div>
                       ) : (
                         <span className="inline-block text-[11px] text-green-700 bg-green-50 px-2 py-0.5 rounded-full mt-1">
                           Available

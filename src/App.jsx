@@ -9,6 +9,7 @@ import LiveMap from './pages/LiveMap';
 import RideHistory from './pages/RideHistory';
 import CustomerManagement from './pages/CustomerManagement';
 import AutoClickerManagement from './pages/AutoClickerManagement';
+import AdWatchManagement from './pages/AdWatchManagement';
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
                       <Route path="/rides" element={<RideHistory />} />
                       <Route path="/customers" element={<CustomerManagement />} />
                       <Route path="/auto-clicker-management" element={<AutoClickerManagement />} />
+                      <Route path="/ad-watch-management" element={<AdWatchManagement />} />
                       {/* Any unknown path → Dashboard */}
                       <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
