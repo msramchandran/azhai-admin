@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Eye, Check, X, Search, UploadCloud, Play, Trash2, Edit2, ToggleLeft, ToggleRight, PlusCircle } from 'lucide-react';
 import api from '../services/api';
@@ -44,6 +44,7 @@ const mockDrivers = [
 export default function DriverManagement() {
   const [drivers, setDrivers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
   const [selectedDriver, setSelectedDriver] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -51,6 +52,14 @@ export default function DriverManagement() {
   const [versionName, setVersionName] = useState('');
   const [releases, setReleases] = useState([]);
   const [uploadLoading, setUploadLoading] = useState(false);
+
+  // 📄 Pagination state
+  const LIMIT = 20;
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [statusCounts, setStatusCounts] = useState({});
+  const searchDebounceRef = useRef(null);
 
   // ðŸŽ¬ Tutorial Videos State
   const [tutorialVideos, setTutorialVideos] = useState([]);
@@ -113,15 +122,62 @@ export default function DriverManagement() {
     }
   };
 
-  const fetchDrivers = async () => {
+  const fetchDrivers = async (page = currentPage, status = statusFilter, search = searchQuery) => {
+    setLoading(true);
+    setFetchError(null);
     try {
-      const response = await api.get('/api/admin/drivers');
-      setDrivers(response.data);
-      setLoading(false);
+      // Driver documents contain large Base64 image payloads (DL, RC, Aadhar).
+      // Using a 60s request-level timeout to override the global default safely.
+      const response = await api.get('/api/admin/drivers', {
+        params: { page, limit: LIMIT, status, search },
+        timeout: 60000,
+      });
+      const data = response.data;
+      setDrivers(data.drivers);
+      setTotalCount(data.totalCount);
+      setTotalPages(data.totalPages);
+      setCurrentPage(data.currentPage);
+      setStatusCounts(data.statusCounts || {});
     } catch (error) {
       console.error('Failed to fetch drivers:', error);
+      const isTimeout = error.code === 'ECONNABORTED' || error.message?.includes('timeout');
+      setFetchError(
+        isTimeout
+          ? 'Driver data load ஆகவில்லை — connection timeout. மீண்டும் முயற்சிக்கவும்.'
+          : 'Driver data fetch பண்ண முடியவில்லை. Server-ஐ சரிபார்க்கவும்.'
+      );
+    } finally {
       setLoading(false);
     }
+  };
+
+  // Filter button click — resets to page 1 immediately
+  const handleStatusFilter = (newStatus) => {
+    setStatusFilter(newStatus);
+    fetchDrivers(1, newStatus, searchQuery);
+  };
+
+  // Search input change — debounced 500ms, resets to page 1
+  const handleSearch = (value) => {
+    setSearchQuery(value);
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      fetchDrivers(1, statusFilter, value);
+    }, 500);
+  };
+
+  // Pagination button click
+  const handlePageChange = (page) => {
+    if (page < 1 || page > totalPages) return;
+    fetchDrivers(page, statusFilter, searchQuery);
+  };
+
+  // Pagination page-number list (with smart ellipsis)
+  const getPageNumbers = () => {
+    if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
+    if (currentPage <= 4) return [1, 2, 3, 4, 5, '...', totalPages];
+    if (currentPage >= totalPages - 3) return [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+    return [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
   };
 
   const fetchReleases = async () => {
@@ -134,7 +190,7 @@ export default function DriverManagement() {
   };
 
   useEffect(() => {
-    fetchDrivers();
+    fetchDrivers(1, 'all', '');
     fetchReleases();
     fetchTutorialVideos();
   }, []);
@@ -266,43 +322,20 @@ export default function DriverManagement() {
 
   const [statusFilter, setStatusFilter] = useState('all');
 
-  const totalCount = drivers.length;
-  const pendingCount = drivers.filter(d => d.status === 'pending').length;
-  const activeCount = drivers.filter(d => d.status === 'active').length;
-  const blockedCount = drivers.filter(d => d.status === 'blocked').length;
-  const rejectedCount = drivers.filter(d => d.status === 'rejected').length;
-  const updatePendingCount = drivers.filter(d => d.forceUpdate === true).length;
-  const outdatedCount = drivers.filter(d => (d.appVersion || '1.0.0') !== '1.0.1').length;
-  const updatedCount = drivers.filter(d => (d.appVersion || '1.0.0') === '1.0.1').length;
-  const goodRatingCount = drivers.filter(d => d.averageRating >= 3.0).length;
-  const badRatingCount = drivers.filter(d => d.averageRating > 0 && d.averageRating < 3.0).length;
+  // ── Counter values from server (accurate across ALL drivers, not just current page) ──
+  const totalDriverCount    = statusCounts.all           || 0;
+  const pendingCount        = statusCounts.pending        || 0;
+  const activeCount         = statusCounts.active         || 0;
+  const blockedCount        = statusCounts.blocked        || 0;
+  const rejectedCount       = statusCounts.rejected       || 0;
+  const updatePendingCount  = statusCounts.update_pending || 0;
+  const outdatedCount       = statusCounts.outdated       || 0;
+  const updatedCount        = statusCounts.updated        || 0;
+  const goodRatingCount     = statusCounts.good_rating    || 0;
+  const badRatingCount      = statusCounts.bad_rating     || 0;
 
-  const filteredDrivers = drivers.filter((driver) => {
-    // 1. Status Filter
-    if (statusFilter !== 'all') {
-      if (statusFilter === 'update_pending') {
-        if (!driver.forceUpdate) return false;
-      } else if (statusFilter === 'outdated') {
-        if ((driver.appVersion || '1.0.0') === '1.0.1') return false;
-      } else if (statusFilter === 'updated') {
-        if ((driver.appVersion || '1.0.0') !== '1.0.1') return false;
-      } else if (statusFilter === 'good_rating') {
-        if (!driver.averageRating || driver.averageRating < 3.0) return false;
-      } else if (statusFilter === 'bad_rating') {
-        if (!driver.averageRating || driver.averageRating >= 3.0) return false;
-      } else if (driver.status !== statusFilter) {
-        return false;
-      }
-    }
-    // 2. Search Query Filter
-    const query = searchQuery.toLowerCase().trim();
-    if (!query) return true;
-    const phone = (driver.phone || '').toLowerCase();
-    const regNumber = (driver.regNumber || '').toLowerCase();
-    const name = (driver.name || '').toLowerCase();
-    const email = (driver.email || '').toLowerCase();
-    return phone.includes(query) || regNumber.includes(query) || name.includes(query) || email.includes(query);
-  });
+  // Server already filters & paginates — no client-side filtering needed
+  const filteredDrivers = drivers;
 
   if (loading) {
     return (
@@ -310,6 +343,25 @@ export default function DriverManagement() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-gray-600">Loading drivers...</p>
+          <p className="text-xs text-gray-400 mt-2">Document images load ஆகின்றன, சற்று காத்திருங்கள்…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <div className="ml-64 p-8 flex items-center justify-center h-screen">
+        <div className="text-center bg-red-50 border border-red-200 rounded-xl p-8 max-w-md shadow-sm">
+          <div className="text-5xl mb-4">⚠️</div>
+          <h2 className="text-lg font-bold text-red-800 mb-2">Data Load பண்ண முடியவில்லை</h2>
+          <p className="text-sm text-red-700 mb-6">{fetchError}</p>
+          <button
+            onClick={fetchDrivers}
+            className="px-6 py-2.5 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-sm text-sm"
+          >
+            🔄 மீண்டும் முயற்சி (Retry)
+          </button>
         </div>
       </div>
     );
@@ -334,7 +386,7 @@ export default function DriverManagement() {
               type="text"
               placeholder="Search by phone, vehicle no..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => handleSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-gray-900"
             />
             <div className="absolute left-3 top-2.5 text-gray-400">
@@ -432,7 +484,7 @@ export default function DriverManagement() {
       {/* Driver Status Counts Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-4 mb-6">
         <button
-          onClick={() => setStatusFilter('all')}
+          onClick={() => handleStatusFilter('all')}
           className={`p-4 rounded-lg border text-left transition-all ${
             statusFilter === 'all'
               ? 'border-blue-500 bg-blue-50 shadow-sm ring-1 ring-blue-500'
@@ -440,11 +492,11 @@ export default function DriverManagement() {
           }`}
         >
           <p className="text-sm font-semibold text-gray-500">Total Drivers</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{totalCount}</p>
+          <p className="text-2xl font-bold text-gray-900 mt-1">{totalDriverCount}</p>
         </button>
 
         <button
-          onClick={() => setStatusFilter('pending')}
+          onClick={() => handleStatusFilter('pending')}
           className={`p-4 rounded-lg border text-left transition-all ${
             statusFilter === 'pending'
               ? 'border-yellow-500 bg-yellow-50 shadow-sm ring-1 ring-yellow-500'
@@ -456,7 +508,7 @@ export default function DriverManagement() {
         </button>
 
         <button
-          onClick={() => setStatusFilter('active')}
+          onClick={() => handleStatusFilter('active')}
           className={`p-4 rounded-lg border text-left transition-all ${
             statusFilter === 'active'
               ? 'border-green-500 bg-green-50 shadow-sm ring-1 ring-green-500'
@@ -468,7 +520,7 @@ export default function DriverManagement() {
         </button>
 
         <button
-          onClick={() => setStatusFilter('blocked')}
+          onClick={() => handleStatusFilter('blocked')}
           className={`p-4 rounded-lg border text-left transition-all ${
             statusFilter === 'blocked'
               ? 'border-red-500 bg-red-50 shadow-sm ring-1 ring-red-500'
@@ -480,7 +532,7 @@ export default function DriverManagement() {
         </button>
 
         <button
-          onClick={() => setStatusFilter('rejected')}
+          onClick={() => handleStatusFilter('rejected')}
           className={`p-4 rounded-lg border text-left transition-all ${
             statusFilter === 'rejected'
               ? 'border-orange-500 bg-orange-50 shadow-sm ring-1 ring-orange-500'
@@ -492,7 +544,7 @@ export default function DriverManagement() {
         </button>
 
         <button
-          onClick={() => setStatusFilter('update_pending')}
+          onClick={() => handleStatusFilter('update_pending')}
           className={`p-4 rounded-lg border text-left transition-all ${
             statusFilter === 'update_pending'
               ? 'border-orange-500 bg-orange-50 shadow-sm ring-1 ring-orange-500'
@@ -504,7 +556,7 @@ export default function DriverManagement() {
         </button>
 
         <button
-          onClick={() => setStatusFilter('outdated')}
+          onClick={() => handleStatusFilter('outdated')}
           className={`p-4 rounded-lg border text-left transition-all ${
             statusFilter === 'outdated'
               ? 'border-red-500 bg-red-50 shadow-sm ring-1 ring-red-500'
@@ -516,7 +568,7 @@ export default function DriverManagement() {
         </button>
 
         <button
-          onClick={() => setStatusFilter('updated')}
+          onClick={() => handleStatusFilter('updated')}
           className={`p-4 rounded-lg border text-left transition-all ${
             statusFilter === 'updated'
               ? 'border-green-500 bg-green-50 shadow-sm ring-1 ring-green-500'
@@ -528,7 +580,7 @@ export default function DriverManagement() {
         </button>
 
         <button
-          onClick={() => setStatusFilter('good_rating')}
+          onClick={() => handleStatusFilter('good_rating')}
           className={`p-4 rounded-lg border text-left transition-all ${
             statusFilter === 'good_rating'
               ? 'border-green-500 bg-green-50 shadow-sm ring-1 ring-green-500'
@@ -540,7 +592,7 @@ export default function DriverManagement() {
         </button>
 
         <button
-          onClick={() => setStatusFilter('bad_rating')}
+          onClick={() => handleStatusFilter('bad_rating')}
           className={`p-4 rounded-lg border text-left transition-all ${
             statusFilter === 'bad_rating'
               ? 'border-red-500 bg-red-50 shadow-sm ring-1 ring-red-500'
@@ -665,6 +717,64 @@ export default function DriverManagement() {
             </tbody>
           </table>
         </div>
+
+        {/* ── Pagination UI ─────────────────────────────────────────── */}
+        {totalPages > 1 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50/50">
+            {/* Info text */}
+            <p className="text-sm text-gray-500 order-2 sm:order-1">
+              Showing{' '}
+              <span className="font-semibold text-gray-700">
+                {drivers.length > 0 ? (currentPage - 1) * LIMIT + 1 : 0}
+              </span>
+              {' – '}
+              <span className="font-semibold text-gray-700">
+                {Math.min(currentPage * LIMIT, totalCount)}
+              </span>
+              {' of '}
+              <span className="font-semibold text-gray-700">{totalCount}</span>
+              {' drivers'}
+            </p>
+
+            {/* Page buttons */}
+            <div className="flex items-center gap-1 order-1 sm:order-2">
+              {/* Previous */}
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium"
+              >
+                ← Prev
+              </button>
+
+              {/* Page numbers */}
+              {getPageNumbers().map((p, idx) =>
+                p === '...'
+                  ? <span key={`ellipsis-${idx}`} className="px-2 text-gray-400 text-sm select-none">…</span>
+                  : <button
+                      key={p}
+                      onClick={() => handlePageChange(p)}
+                      className={`min-w-[36px] px-2 py-1.5 text-sm border rounded-lg font-semibold transition-colors ${
+                        p === currentPage
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                          : 'bg-white text-gray-700 border-gray-300 hover:bg-blue-50 hover:border-blue-400'
+                      }`}
+                    >
+                      {p}
+                    </button>
+              )}
+
+              {/* Next */}
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium"
+              >
+                Next →
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {showModal && (
