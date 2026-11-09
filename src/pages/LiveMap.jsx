@@ -9,16 +9,30 @@ const mapContainerStyle = {
   borderRadius: '8px',
 };
 
+// Center of India
 const defaultCenter = {
-  lat: 12.9500,
-  lng: 80.1000,
+  lat: 20.5937,
+  lng: 78.9629,
 };
 
-const mapBounds = {
-  north: 13.2,
-  south: 12.6,
-  east: 80.4,
-  west: 79.7,
+// Geographic bounds covering India
+const indiaBounds = {
+  north: 37.5,
+  south: 6.5,
+  east: 97.5,
+  west: 68.0,
+};
+
+const mapOptions = {
+  gestureHandling: 'greedy', // Enables direct mouse scroll zoom and two-finger pinch zoom
+  scrollwheel: true,
+  zoomControl: true,
+  minZoom: 4,
+  maxZoom: 18,
+  restriction: {
+    latLngBounds: indiaBounds,
+    strictBounds: false,
+  },
 };
 
 const mockLiveDrivers = [
@@ -70,26 +84,6 @@ export default function LiveMap() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleMapDragEnd = (map) => {
-    const currentBounds = map.getBounds();
-    const ne = currentBounds.getNorthEast();
-    const sw = currentBounds.getSouthWest();
-
-    if (
-      ne.lat() > mapBounds.north ||
-      sw.lat() < mapBounds.south ||
-      ne.lng() > mapBounds.east ||
-      sw.lng() < mapBounds.west
-    ) {
-      map.fitBounds({
-        north: mapBounds.north,
-        south: mapBounds.south,
-        east: mapBounds.east,
-        west: mapBounds.west,
-      });
-    }
-  };
-
   if (loading) {
     return (
       <div className="ml-64 p-8 flex items-center justify-center h-screen">
@@ -105,7 +99,7 @@ export default function LiveMap() {
     <div className="ml-64 p-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Live Map Tracking</h1>
-        <p className="text-gray-600">Real-time location of active auto-rickshaws in Chennai region</p>
+        <p className="text-gray-600">Real-time location of active auto-rickshaws across India</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -115,15 +109,9 @@ export default function LiveMap() {
               <GoogleMap
                 mapContainerStyle={mapContainerStyle}
                 center={defaultCenter}
-                zoom={9}
+                zoom={5}
                 onLoad={() => setMapLoaded(true)}
-                onDragEnd={(map) => handleMapDragEnd(map)}
-                options={{
-                  restriction: {
-                    latLngBounds: mapBounds,
-                    strictBounds: true,
-                  },
-                }}
+                options={mapOptions}
               >
                 {mapLoaded && drivers.map((driver) => (
                   <MarkerF
