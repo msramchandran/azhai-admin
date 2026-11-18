@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { ArrowLeft, RefreshCw, Ban, CheckCircle, Clock, Smartphone, AlertTriangle, Play } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Ban, CheckCircle, Clock, Smartphone, AlertTriangle, Play, Search, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const AutoClickerManagement = () => {
@@ -9,6 +9,7 @@ const AutoClickerManagement = () => {
   const [editingTrips, setEditingTrips] = useState(null);
   const [tripValue, setTripValue] = useState(0);
   const [filter, setFilter] = useState('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
   const [targetVersion, setTargetVersion] = useState('1.0.0');
   const [savingVersion, setSavingVersion] = useState(false);
   const navigate = useNavigate();
@@ -134,13 +135,24 @@ const AutoClickerManagement = () => {
   const outdatedCount = users.filter(user => user.appVersion !== targetVersion).length;
 
   const filteredUsers = users.filter(user => {
-    if (filter === 'UPDATED') return user.appVersion === targetVersion;
-    if (filter === 'OUTDATED') return user.appVersion !== targetVersion;
-    if (filter === 'ONLINE') return user.isOnline;
-    if (filter === 'OFFLINE') return !user.isOnline;
-    if (filter === 'PAID') return user.hasPaidForClicker;
-    if (filter === 'BLOCKED') return user.isBlocked;
-    return true; // 'ALL'
+    // 1. Status Filter
+    if (filter === 'UPDATED' && user.appVersion !== targetVersion) return false;
+    if (filter === 'OUTDATED' && user.appVersion === targetVersion) return false;
+    if (filter === 'ONLINE' && !user.isOnline) return false;
+    if (filter === 'OFFLINE' && user.isOnline) return false;
+    if (filter === 'PAID' && !user.hasPaidForClicker) return false;
+    if (filter === 'BLOCKED' && !user.isBlocked) return false;
+
+    // 2. Search Query (matches Name, Phone, or Clicker ID)
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      const nameMatch = (user.name || '').toLowerCase().includes(q);
+      const phoneMatch = (user.phone || '').toLowerCase().includes(q);
+      const idMatch = (user.clickerId || '').toLowerCase().includes(q);
+      return nameMatch || phoneMatch || idMatch;
+    }
+
+    return true;
   });
 
   return (
@@ -160,6 +172,27 @@ const AutoClickerManagement = () => {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          {/* 🔍 Search Bar for Name & Mobile Number */}
+          <div className="relative flex items-center">
+            <Search className="w-4 h-4 text-gray-400 absolute left-3 pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search Name or Mobile..."
+              className="pl-9 pr-8 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs sm:text-sm w-44 sm:w-64"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 text-gray-400 hover:text-gray-600 p-0.5"
+                title="Clear search"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
           <select
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
