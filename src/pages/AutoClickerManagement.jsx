@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { ArrowLeft, RefreshCw, Ban, CheckCircle, Clock, Smartphone, AlertTriangle, Play, Search, X, ShieldOff } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Ban, CheckCircle, Clock, Smartphone, AlertTriangle, Play, Search, X, ShieldOff, Download, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const AutoClickerManagement = () => {
@@ -12,6 +12,8 @@ const AutoClickerManagement = () => {
   const [filter, setFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [targetVersion, setTargetVersion] = useState('1.0.0');
+  const [apkUrl, setApkUrl] = useState('');
+  const [showVersionModal, setShowVersionModal] = useState(false);
   const [savingVersion, setSavingVersion] = useState(false);
 
   // 📄 Pagination state
@@ -34,8 +36,9 @@ const AutoClickerManagement = () => {
   const fetchVersion = async () => {
     try {
       const res = await axios.get('/api/clicker-version');
-      if (res.data && res.data.latestVersion) {
-        setTargetVersion(res.data.latestVersion);
+      if (res.data) {
+        if (res.data.latestVersion) setTargetVersion(res.data.latestVersion);
+        if (res.data.apkUrl) setApkUrl(res.data.apkUrl);
       }
     } catch (err) {
       console.error('Error fetching clicker version', err);
@@ -117,17 +120,22 @@ const AutoClickerManagement = () => {
 
   const handleSaveVersion = async () => {
     if (!targetVersion.trim()) {
-      alert('Please enter a valid version (e.g. 1.0.1)');
+      alert('Please enter a valid version (e.g. 1.0.3)');
       return;
     }
-    if (!window.confirm(`AutoClicker Target Version-ஐ v${targetVersion} என மாற்றவா? பழைய பதிப்பு வைத்திருக்கும் பயனர்களுக்கு Update Dialog தோன்றும்.`)) return;
+    if (!apkUrl.trim()) {
+      alert('Please enter a valid APK Download URL (GitHub Direct APK link)');
+      return;
+    }
+    if (!window.confirm(`AutoClicker Target Version-ஐ v${targetVersion.trim()} மற்றும் APK URL-ஐ மாற்றவா? பழைய பதிப்பு வைத்திருக்கும் பயனர்களுக்கு Real-time Update Dialog தோன்றும்.`)) return;
     setSavingVersion(true);
     try {
       await axios.post('/api/admin/clicker-version', {
         versionName: targetVersion.trim(),
-        apkUrl: 'https://playstore-website-one.vercel.app/autoclicker.apk'
+        apkUrl: apkUrl.trim()
       });
-      alert(`✅ Target Version v${targetVersion.trim()} என அமைக்கப்பட்டது! Vercel Download URL உடன் update broadcast செய்யப்பட்டுள்ளது.`);
+      alert(`✅ Target Version v${targetVersion.trim()} & APK URL வெற்றிகரமாக மாற்றப்பட்டது! அனைத்து பயனர்களுக்கும் Real-time Update Broadcast செய்யப்பட்டுள்ளது.`);
+      setShowVersionModal(false);
       fetchUsers();
     } catch (err) {
       console.error('Failed to set target version', err);
@@ -276,20 +284,14 @@ const AutoClickerManagement = () => {
           </select>
           <div className="flex items-center gap-1.5 sm:gap-2 bg-blue-50 border border-blue-200 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs">
             <Smartphone className="w-4 h-4 text-blue-600 shrink-0" />
-            <span className="font-semibold text-blue-900 hidden sm:inline">Live Version:</span>
-            <input
-              type="text"
-              value={targetVersion}
-              onChange={(e) => setTargetVersion(e.target.value)}
-              placeholder="1.0.0"
-              className="w-16 px-1.5 py-0.5 border border-blue-300 rounded text-center font-bold text-blue-900 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
-            />
+            <span className="font-semibold text-blue-900">Target: <span className="font-bold text-blue-700">v{targetVersion}</span></span>
             <button
-              onClick={handleSaveVersion}
-              disabled={savingVersion}
-              className="px-2 sm:px-2.5 py-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded font-medium transition-colors text-[11px] sm:text-xs"
+              onClick={() => setShowVersionModal(true)}
+              className="ml-1 px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium transition-colors text-[11px] shadow-sm flex items-center gap-1"
+              title="Configure Target Version and GitHub Direct APK Download Link"
             >
-              {savingVersion ? '...' : 'Set & Broadcast'}
+              <Download className="w-3 h-3" />
+              <span>Update APK & Version</span>
             </button>
           </div>
           <button
@@ -541,6 +543,122 @@ const AutoClickerManagement = () => {
           </div>
         )}
       </div>
+
+      {/* 🚀 Target Version & GitHub APK URL Management Modal */}
+      {showVersionModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-gray-100">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-700 px-6 py-4 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-white/10 rounded-lg">
+                  <Smartphone className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base leading-tight">AutoClicker Version & APK Settings</h3>
+                  <p className="text-blue-100 text-xs">Configure In-App Download APK and Target Version</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowVersionModal(false)}
+                className="text-white/80 hover:text-white hover:bg-white/10 rounded-lg p-1.5 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                  Target Version (e.g. 1.0.3)
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={targetVersion}
+                    onChange={(e) => setTargetVersion(e.target.value)}
+                    placeholder="1.0.3"
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-300 rounded-xl font-bold text-gray-800 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  />
+                  <span className="absolute right-3.5 top-2.5 text-xs font-semibold text-gray-400">versionName</span>
+                </div>
+                <p className="text-[11px] text-gray-500 mt-1">
+                  இந்த பதிப்பை விட பழைய பதிப்பு வைத்துள்ள பயனர்களுக்கு உடனடியாக Update Dialog தோன்றும்.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                  GitHub Direct APK Download URL
+                </label>
+                <div className="relative">
+                  <input
+                    type="url"
+                    value={apkUrl}
+                    onChange={(e) => setApkUrl(e.target.value)}
+                    placeholder="https://github.com/.../Click.assist.pro.apk"
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-300 rounded-xl font-mono text-xs text-gray-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  />
+                  {apkUrl && (
+                    <a
+                      href={apkUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="absolute right-2.5 top-2.5 text-blue-600 hover:text-blue-800 p-0.5 rounded"
+                      title="Test download link in new tab"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
+                  )}
+                </div>
+                <p className="text-[11px] text-gray-500 mt-1">
+                  GitHub Release-ல் உள்ள direct APK download link-ஐ இங்கு இடவும். ஆப்பில் டிரைவர்கள் இந்த லிங்க் மூலமாகவே In-App டவுன்லோட் செய்வர்.
+                </p>
+              </div>
+
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 flex items-start gap-2.5">
+                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold">நிகழ்நேர அறிவிப்பு (Real-time Broadcast):</span>
+                  <p className="text-amber-700 mt-0.5">
+                    "Set & Broadcast" கிளிக் செய்தவுடன், தற்போது ஆப்பில் இருக்கும் பழைய டிரைவர்களுக்கு உடனடியாக In-App Download பாப்-அப் தோன்றும்.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowVersionModal(false)}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl text-xs sm:text-sm font-semibold hover:bg-gray-100 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveVersion}
+                disabled={savingVersion}
+                className="px-5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-md hover:shadow-lg disabled:opacity-50 transition-all flex items-center gap-1.5"
+              >
+                {savingVersion ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4" />
+                    <span>Set & Broadcast Update</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
