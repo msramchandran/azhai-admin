@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { ArrowLeft, RefreshCw, Ban, CheckCircle, Clock, Smartphone, AlertTriangle, Play, Search, X, ShieldOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const AutoClickerManagement = () => {
+  const LIMIT = 20;
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingTrips, setEditingTrips] = useState(null);
@@ -12,6 +13,22 @@ const AutoClickerManagement = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [targetVersion, setTargetVersion] = useState('1.0.0');
   const [savingVersion, setSavingVersion] = useState(false);
+
+  // 📄 Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [statusCounts, setStatusCounts] = useState({
+    all: 0,
+    updated: 0,
+    outdated: 0,
+    online: 0,
+    offline: 0,
+    paid: 0,
+    blocked: 0
+  });
+  const searchDebounceRef = useRef(null);
+
   const navigate = useNavigate();
 
   const fetchVersion = async () => {
@@ -25,11 +42,31 @@ const AutoClickerManagement = () => {
     }
   };
 
-  const fetchUsers = async () => {
+  const fetchUsers = async (page = currentPage, currentFilter = filter, search = searchQuery) => {
     setLoading(true);
     try {
-      const response = await axios.get('/api/admin/clicker-users');
-      setUsers(response.data);
+      const response = await axios.get('/api/admin/clicker-users', {
+        params: {
+          page,
+          limit: LIMIT,
+          status: currentFilter,
+          search
+        }
+      });
+      const data = response.data;
+      if (Array.isArray(data)) {
+        setUsers(data);
+        setTotalCount(data.length);
+        setTotalPages(Math.ceil(data.length / LIMIT) || 1);
+      } else {
+        setUsers(data.users || []);
+        setTotalCount(data.totalCount || 0);
+        setTotalPages(data.totalPages || 1);
+        setCurrentPage(data.currentPage || 1);
+        if (data.statusCounts) {
+          setStatusCounts(data.statusCounts);
+        }
+      }
     } catch (error) {
       console.error('Error fetching clicker users', error);
       alert('Failed to load users');
@@ -39,9 +76,44 @@ const AutoClickerManagement = () => {
   };
 
   useEffect(() => {
-    fetchUsers();
+    fetchUsers(1, 'ALL', '');
     fetchVersion();
   }, []);
+
+  const handlePageChange = (newPage) => {
+    if (newPage < 1 || newPage > totalPages) return;
+    setCurrentPage(newPage);
+    fetchUsers(newPage, filter, searchQuery);
+  };
+
+  const handleFilterChange = (newFilter) => {
+    setFilter(newFilter);
+    setCurrentPage(1);
+    fetchUsers(1, newFilter, searchQuery);
+  };
+
+  const handleSearchChange = (e) => {
+    const val = e.target.value;
+    setSearchQuery(val);
+    clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      setCurrentPage(1);
+      fetchUsers(1, filter, val);
+    }, 400);
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    setCurrentPage(1);
+    fetchUsers(1, filter, '');
+  };
+
+  const getPageNumbers = () => {
+    if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
+    if (currentPage <= 4) return [1, 2, 3, 4, 5, '...', totalPages];
+    if (currentPage >= totalPages - 3) return [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+    return [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
+  };
 
   const handleSaveVersion = async () => {
     if (!targetVersion.trim()) {
@@ -68,7 +140,7 @@ const AutoClickerManagement = () => {
   const togglePayment = async (driverId) => {
     try {
       await axios.post(`/api/admin/clicker-users/${driverId}/toggle-payment`);
-      fetchUsers();
+      fetchUsers(currentPage, filter, searchQuery);
     } catch (error) {
       console.error('Error toggling payment', error);
       alert('Failed to update payment status');
@@ -80,7 +152,7 @@ const AutoClickerManagement = () => {
     try {
       await axios.post(`/api/admin/clicker-users/${driverId}/trigger-free-trial-end`);
       alert('✅ Free Trial End triggered! User-க்கு payment dialog show ஆகும்.');
-      fetchUsers();
+      fetchUsers(currentPage, filter, searchQuery);
     } catch (error) {
       console.error('Error triggering free trial end', error);
       alert('Failed to trigger free trial end');
@@ -102,19 +174,19 @@ const AutoClickerManagement = () => {
     try {
       await axios.post(`/api/admin/clicker-users/${driverId}/update-trips`, { trips: tripValue });
       setEditingTrips(null);
-      fetchUsers();
+      fetchUsers(currentPage, filter, searchQuery);
     } catch (error) {
       console.error('Error updating trips', error);
       alert('Failed to update trips');
     }
   };
 
-    const removeDailyLimit = async (userId, name) => {
+  const removeDailyLimit = async (userId, name) => {
     if (!window.confirm(`${name || 'இந்த டிரைவர்'}-க்கு 12-hour block-ஐ நீக்கவா? ஆப் உடனடியாக அன்லாக் ஆகும்.`)) return;
     try {
       await axios.post(`/api/admin/clicker-users/${userId}/remove-daily-limit`);
       alert('✅ 12-Hour Block வெற்றிகரமாக நீக்கப்பட்டது! பயனருக்கு ஆப் அன்லாக் செய்யப்பட்டு அறிவிப்பு அனுப்பப்பட்டுள்ளது.');
-      fetchUsers();
+      fetchUsers(currentPage, filter, searchQuery);
     } catch (error) {
       console.error('Error removing daily limit', error);
       alert('12-hour block நீக்க முடியவில்லை: ' + (error.response?.data?.error || error.message));
@@ -124,7 +196,7 @@ const AutoClickerManagement = () => {
   const toggleBlock = async (driverId) => {
     try {
       await axios.post(`/api/admin/clicker-users/${driverId}/toggle-block`);
-      fetchUsers();
+      fetchUsers(currentPage, filter, searchQuery);
     } catch (error) {
       console.error('Error toggling block', error);
       alert('Failed to update block status');
@@ -142,36 +214,14 @@ const AutoClickerManagement = () => {
     try {
       await axios.post(`/api/admin/clicker-users/${driverId}/reset-device-id`);
       alert('✅ Device ID வெற்றிகரமாக reset செய்யப்பட்டது!\nடிரைவர் இப்போது புதிய போனில் login செய்யலாம்.');
-      fetchUsers();
+      fetchUsers(currentPage, filter, searchQuery);
     } catch (error) {
       console.error('Error resetting device ID', error);
       alert('Device ID reset தோல்வி: ' + (error.response?.data?.error || error.message));
     }
   };
 
-  const updatedCount = users.filter(user => user.appVersion === targetVersion).length;
-  const outdatedCount = users.filter(user => user.appVersion !== targetVersion).length;
-
-  const filteredUsers = users.filter(user => {
-    // 1. Status Filter
-    if (filter === 'UPDATED' && user.appVersion !== targetVersion) return false;
-    if (filter === 'OUTDATED' && user.appVersion === targetVersion) return false;
-    if (filter === 'ONLINE' && !user.isOnline) return false;
-    if (filter === 'OFFLINE' && user.isOnline) return false;
-    if (filter === 'PAID' && !user.hasPaidForClicker) return false;
-    if (filter === 'BLOCKED' && !user.isBlocked) return false;
-
-    // 2. Search Query (matches Name, Phone, or Clicker ID)
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      const nameMatch = (user.name || '').toLowerCase().includes(q);
-      const phoneMatch = (user.phone || '').toLowerCase().includes(q);
-      const idMatch = (user.clickerId || '').toLowerCase().includes(q);
-      return nameMatch || phoneMatch || idMatch;
-    }
-
-    return true;
-  });
+  const filteredUsers = users;
 
   return (
     <div className="md:ml-64 p-3 sm:p-6 min-h-screen bg-gray-50">
@@ -196,13 +246,13 @@ const AutoClickerManagement = () => {
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={handleSearchChange}
               placeholder="Search Name or Mobile..."
               className="pl-9 pr-8 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs sm:text-sm w-44 sm:w-64"
             />
             {searchQuery && (
               <button
-                onClick={() => setSearchQuery('')}
+                onClick={handleClearSearch}
                 className="absolute right-2.5 text-gray-400 hover:text-gray-600 p-0.5"
                 title="Clear search"
               >
@@ -213,16 +263,16 @@ const AutoClickerManagement = () => {
 
           <select
             value={filter}
-            onChange={(e) => setFilter(e.target.value)}
+            onChange={(e) => handleFilterChange(e.target.value)}
             className="px-3 sm:px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors cursor-pointer text-xs sm:text-sm font-medium"
           >
-            <option value="ALL">All Drivers ({users.length})</option>
-            <option value="UPDATED">Updated Drivers ({updatedCount})</option>
-            <option value="OUTDATED">Outdated Drivers ({outdatedCount})</option>
-            <option value="ONLINE">Online Drivers</option>
-            <option value="OFFLINE">Offline Drivers</option>
-            <option value="PAID">Paid Drivers</option>
-            <option value="BLOCKED">Blocked Drivers</option>
+            <option value="ALL">All Drivers ({statusCounts.all || 0})</option>
+            <option value="UPDATED">Updated Drivers ({statusCounts.updated || 0})</option>
+            <option value="OUTDATED">Outdated Drivers ({statusCounts.outdated || 0})</option>
+            <option value="ONLINE">Online Drivers ({statusCounts.online || 0})</option>
+            <option value="OFFLINE">Offline Drivers ({statusCounts.offline || 0})</option>
+            <option value="PAID">Paid Drivers ({statusCounts.paid || 0})</option>
+            <option value="BLOCKED">Blocked Drivers ({statusCounts.blocked || 0})</option>
           </select>
           <div className="flex items-center gap-1.5 sm:gap-2 bg-blue-50 border border-blue-200 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs">
             <Smartphone className="w-4 h-4 text-blue-600 shrink-0" />
@@ -260,7 +310,7 @@ const AutoClickerManagement = () => {
             <span className="sm:hidden">Update All</span>
           </button>
           <button 
-            onClick={fetchUsers}
+            onClick={() => fetchUsers(currentPage, filter, searchQuery)}
             className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-xs sm:text-sm font-medium"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -432,6 +482,64 @@ const AutoClickerManagement = () => {
             </tbody>
           </table>
         </div>
+
+        {/* ── Pagination UI ─────────────────────────────────────────── */}
+        {totalPages > 1 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50/50">
+            {/* Info text */}
+            <p className="text-sm text-gray-500 order-2 sm:order-1">
+              Showing{' '}
+              <span className="font-semibold text-gray-700">
+                {users.length > 0 ? (currentPage - 1) * LIMIT + 1 : 0}
+              </span>
+              {' – '}
+              <span className="font-semibold text-gray-700">
+                {Math.min(currentPage * LIMIT, totalCount)}
+              </span>
+              {' of '}
+              <span className="font-semibold text-gray-700">{totalCount}</span>
+              {' drivers'}
+            </p>
+
+            {/* Page buttons */}
+            <div className="flex items-center gap-1 order-1 sm:order-2">
+              {/* Previous */}
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium"
+              >
+                ← Prev
+              </button>
+
+              {/* Page numbers */}
+              {getPageNumbers().map((p, idx) =>
+                p === '...'
+                  ? <span key={`ellipsis-${idx}`} className="px-2 text-gray-400 text-sm select-none">…</span>
+                  : <button
+                      key={p}
+                      onClick={() => handlePageChange(p)}
+                      className={`min-w-[36px] px-2 py-1.5 text-sm border rounded-lg font-semibold transition-colors ${
+                        p === currentPage
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                          : 'bg-white text-gray-700 border-gray-300 hover:bg-blue-50 hover:border-blue-400'
+                      }`}
+                    >
+                      {p}
+                    </button>
+              )}
+
+              {/* Next */}
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium"
+              >
+                Next →
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
