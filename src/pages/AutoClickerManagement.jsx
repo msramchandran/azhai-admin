@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { ArrowLeft, RefreshCw, Ban, CheckCircle, Clock, Smartphone, AlertTriangle, Play, Search, X } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Ban, CheckCircle, Clock, Smartphone, AlertTriangle, Play, Search, X, ShieldOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const AutoClickerManagement = () => {
@@ -131,6 +131,24 @@ const AutoClickerManagement = () => {
     }
   };
 
+  // 🔒 Device Binding: Driver போன் மாற்றினால் Admin reset செய்யலாம்
+  const resetDeviceId = async (driverId, name) => {
+    if (!window.confirm(
+      `${name || 'இந்த டிரைவர்'}-ன் Device ID-ஐ reset செய்யவா?\n\n` +
+      `✅ இவர் புதிய phone-ல் login செய்ய அனுமதிக்கப்படுவார்.\n` +
+      `⚠️ பழைய phone binding நீக்கப்படும்.`
+    )) return;
+
+    try {
+      await axios.post(`/api/admin/clicker-users/${driverId}/reset-device-id`);
+      alert('✅ Device ID வெற்றிகரமாக reset செய்யப்பட்டது!\nடிரைவர் இப்போது புதிய போனில் login செய்யலாம்.');
+      fetchUsers();
+    } catch (error) {
+      console.error('Error resetting device ID', error);
+      alert('Device ID reset தோல்வி: ' + (error.response?.data?.error || error.message));
+    }
+  };
+
   const updatedCount = users.filter(user => user.appVersion === targetVersion).length;
   const outdatedCount = users.filter(user => user.appVersion !== targetVersion).length;
 
@@ -252,7 +270,7 @@ const AutoClickerManagement = () => {
       </div>
       <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
         <div className="overflow-x-auto w-full">
-          <table className="min-w-[900px] w-full text-left border-collapse">
+          <table className="min-w-[1100px] w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50 border-b">
                 <th className="p-4 font-semibold text-gray-600">Driver Name</th>
@@ -262,17 +280,18 @@ const AutoClickerManagement = () => {
                 <th className="p-4 font-semibold text-gray-600 text-center">Accepted Trips</th>
                 <th className="p-4 font-semibold text-gray-600 text-center">Today's Limit</th>
                 <th className="p-4 font-semibold text-gray-600 text-center">Payment Status</th>
+                <th className="p-4 font-semibold text-gray-600 text-center">Device ID</th>
                 <th className="p-4 font-semibold text-gray-600 text-center">Action</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="8" className="p-8 text-center text-gray-500">Loading...</td>
+                  <td colSpan="9" className="p-8 text-center text-gray-500">Loading...</td>
                 </tr>
               ) : filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="p-8 text-center text-gray-500">No AutoClicker users found</td>
+                  <td colSpan="9" className="p-8 text-center text-gray-500">No AutoClicker users found</td>
                 </tr>
               ) : (
                 filteredUsers.map((user) => (
@@ -363,6 +382,33 @@ const AutoClickerManagement = () => {
                           <a href={`/${user.clickerPaymentScreenshot.replace(/\\/g, '/')}`} target="_blank" rel="noreferrer" className="text-[11px] text-blue-600 underline">View Receipt</a>
                         )}
                       </div>
+                    </td>
+                    {/* 🔒 Device ID Column */}
+                    <td className="p-4 text-center">
+                      {user.deviceId ? (
+                        <div className="flex flex-col items-center gap-1">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-50 text-green-700 border border-green-200 rounded-full text-[11px] font-semibold">
+                            ✅ Synced
+                          </span>
+                          <span
+                            className="font-mono text-[10px] text-gray-400 max-w-[110px] truncate cursor-help"
+                            title={user.deviceId}
+                          >
+                            {user.deviceId}
+                          </span>
+                          <button
+                            onClick={() => resetDeviceId(user.id, user.name)}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-50 text-purple-600 hover:bg-purple-100 border border-purple-200 rounded text-[10px] font-medium transition-colors mt-0.5"
+                            title="Device ID reset செய்யவும் (போன் மாற்றம்)"
+                          >
+                            <ShieldOff className="w-3 h-3" /> Reset Device
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-50 text-orange-500 border border-orange-200 rounded-full text-[11px] font-medium">
+                          ⏳ Not Synced
+                        </span>
+                      )}
                     </td>
                     <td className="p-4 text-center">
                       <button
